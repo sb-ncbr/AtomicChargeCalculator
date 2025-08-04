@@ -8,7 +8,7 @@ export const Footer = () => {
     <footer className="w-full bg-primary px-8 py-4 text-white h-footer">
       <div className="max-w-content mx-auto">
         <span className="text-center text-xs block">
-          © {new Date().getFullYear()} SB-NBCR
+          © {new Date().getFullYear()} SB NCBR
         </span>
         <div className="flex justify-between">
           <div>
@@ -43,12 +43,12 @@ export const Footer = () => {
             </NavLink>
             <NavLink
               className="hover:underline"
-              to="https://github.com/sb-ncbr/AtomicChargeCalculator2"
+              to="https://github.com/sb-ncbr/AtomicChargeCalculator"
             >
               GitHub
             </NavLink>
             <NavLink className="hover:underline" to="https://sb.ncbr.muni.cz/en">
-              SB-NBCR
+              SB NCBR
             </NavLink>
           </div>
         </div>

@@ -21,7 +21,7 @@ export const Citing = () => {
         </i>{" "}
         Are you interested in a research collaboration? Feel free to{" "}
         <a
-          href="mailto:krab1k@mail.muni.cz"
+          href="mailto:tomas.racek@muni.cz"
           target="_blank"
           referrerPolicy="no-referrer"
           className="text-primary hover:underline" rel="noreferrer"

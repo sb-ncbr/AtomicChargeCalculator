@@ -45,9 +45,9 @@ export const Footer = () => {
               className="hover:underline"
               to="https://github.com/sb-ncbr/AtomicChargeCalculator2"
             >
-              Github
+              GitHub
             </NavLink>
-            <NavLink className="hover:underline" to="https://ncbr.muni.cz/">
+            <NavLink className="hover:underline" to="https://sb.ncbr.muni.cz/en">
               SB-NBCR
             </NavLink>
           </div>

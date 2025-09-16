@@ -44,7 +44,7 @@ jobs:
             export OIDC_CLIENT_ID=${{ secrets.OIDC_CLIENT_ID }}
             export OIDC_CLIENT_SECRET=${{ secrets.OIDC_CLIENT_SECRET }}
 
-            cd /home/ubuntu/AtomicChargeCalculator2/
+            cd /home/ubuntu/AtomicChargeCalculator/
             echo "Changed directory to $(pwd)"
 
             echo "Pulling latest changes ..."

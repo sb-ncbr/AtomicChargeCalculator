@@ -3,12 +3,14 @@ services:
     container_name: acc2-nginx
     image: nginx
     volumes:
-      - ./nginx/nginx-dev.conf:/etc/nginx/nginx.conf
-      - ./nginx/snippets:/etc/nginx/snippets
+      - ./nginx/nginx-dev.conf:/etc/nginx/nginx.conf:Z
+      - ./nginx/snippets:/etc/nginx/snippets:Z
     networks:
       - acc2-network
     restart: 
       unless-stopped
+    depends_on:
+      - api
 
   db:
     container_name: acc2-db
@@ -17,11 +19,11 @@ services:
       - db-data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
-      POSTGRES_USER: ${POSTGRES_DB:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_DB:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     healthcheck:
       test: [ "CMD", "pg_isready", "-U", "${POSTGRES_USER:-postgres}" ]
-      interval: 30s
+      interval: 1s
       timeout: 10s
       retries: 5
     networks:
@@ -33,9 +35,6 @@ services:
     build: 
       context: ../backend
       dockerfile: Dockerfile.app
-    volumes:
-      - /home/acc2:/home/acc2
-      - /var/log/acc2:/var/log/acc2
     environment:
       ACC2_DB_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-postgres}"
       CHARGEFW2_INSTALL_DIR: ${CHARGEFW2_INSTALL_DIR:-/ChargeFW2/build}

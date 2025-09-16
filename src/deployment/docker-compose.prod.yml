@@ -20,7 +20,6 @@ services:
       POSTGRES_DB: postgres_prod
       POSTGRES_USER: prod_user
       POSTGRES_PASSWORD: ${PROD_DB_PASSWORD}
-
   api:
     ports:
       - "8000:8000"
@@ -28,6 +27,9 @@ services:
       ACC2_DB_URL: "postgresql://prod_user:${PROD_DB_PASSWORD}@db:5432/postgres_prod"
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
+    volumes:
+      - /home/acc2:/home/acc2
+      - /var/log/acc2:/var/log/acc2
   web:
     build:
       args:

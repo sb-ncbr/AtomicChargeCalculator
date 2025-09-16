@@ -33,6 +33,6 @@ services:
   web:
     build:
       args:
-        VITE_BASE_API_URL: https://acc2.ncbr.muni.cz:443/api/v1
+        VITE_BASE_API_URL: https://acc3-dev.biodata.ceitec.cz:443/api/v1
     ports:
       - "3000:3000"

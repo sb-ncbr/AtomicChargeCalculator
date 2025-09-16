@@ -1,3 +1,6 @@
+[![zenodo](https://zenodo.org/badge/DOI/10.1093/nar/gkaa367.svg)](https://doi.org/10.1093/nar/gkaa367)
+[![License](http://img.shields.io/badge/license-MIT-green.svg?style=flat)](./LICENSE)
+
 <div align="center">
     <a href="https://github.com/sb-ncbr/AtomicChargeCalculator">
         <img src="https://github.com/sb-ncbr/AtomicChargeCalculator/blob/a0dc907ed85d91e2e2eecf0badaa9b33efe3b856/resources/github-images/acc2_logo.png" alt="logo" width="200px">

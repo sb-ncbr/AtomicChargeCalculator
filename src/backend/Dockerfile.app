@@ -18,12 +18,12 @@ RUN curl -sSL https://install.python-poetry.org | python3 - && \
     poetry config virtualenvs.create false
 
 
-WORKDIR /acc2
+WORKDIR /acc
 COPY poetry.lock pyproject.toml ./
 RUN poetry install --no-interaction --no-ansi --no-root
 
-COPY ./app /acc2/app
-COPY ./entrypoint.sh /acc2/
-RUN chmod +x /acc2/entrypoint.sh
+COPY ./app /acc/app
+COPY ./entrypoint.sh /acc/
+RUN chmod +x /acc/entrypoint.sh
 
-ENTRYPOINT ["/acc2/entrypoint.sh"]
+ENTRYPOINT ["/acc/entrypoint.sh"]

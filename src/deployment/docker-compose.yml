@@ -1,19 +1,19 @@
 services:
   nginx:
-    container_name: acc2-nginx
+    container_name: acc-nginx
     image: nginx
     volumes:
       - ./nginx/nginx-dev.conf:/etc/nginx/nginx.conf:Z
       - ./nginx/snippets:/etc/nginx/snippets:Z
     networks:
-      - acc2-network
+      - acc-network
     restart: 
       unless-stopped
     depends_on:
       - api
 
   db:
-    container_name: acc2-db
+    container_name: acc-db
     image: postgres:17-alpine
     volumes:
       - db-data:/var/lib/postgresql/data
@@ -27,11 +27,11 @@ services:
       timeout: 10s
       retries: 5
     networks:
-      - acc2-network
+      - acc-network
     restart: unless-stopped
 
   api:
-    container_name: acc2-api
+    container_name: acc-api
     build: 
       context: ../backend
       dockerfile: Dockerfile.app
@@ -42,21 +42,21 @@ services:
       db:
         condition: service_healthy
     networks:
-      - acc2-network
+      - acc-network
     restart: unless-stopped
 
   web:
-    container_name: acc2-web
+    container_name: acc-web
     build: 
       context: ../frontend
       args:
         - VITE_BASE_API_URL
     networks:
-      - acc2-network
+      - acc-network
     restart: unless-stopped
 
 networks:
-  acc2-network:
+  acc-network:
 
 
 volumes:

@@ -1,6 +1,6 @@
 services:
   nginx:
-    container_name: acc2-nginx
+    container_name: acc-nginx
     image: nginx
     ports:
       - "80:80"
@@ -10,7 +10,7 @@ services:
       - /home/ubuntu/AtomicChargeCalculator/src/deployment/nginx/nginx.conf:/etc/nginx/nginx.conf
       - /home/ubuntu/AtomicChargeCalculator/src/deployment/nginx/snippets:/etc/nginx/snippets
     networks:
-      - acc2-network
+      - acc-network
     restart: 
       unless-stopped
   db:
@@ -28,11 +28,11 @@ services:
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
     volumes:
-      - /home/acc2:/home/acc2
-      - /var/log/acc2:/var/log/acc2
+      - /home/acc:/home/acc
+      - /var/log/acc:/var/log/acc
   web:
     build:
       args:
-        VITE_BASE_API_URL: https://acc3-dev.biodata.ceitec.cz:443/api/v1
+        VITE_BASE_API_URL: https://acc-dev.biodata.ceitec.cz:443/api/v1
     ports:
       - "3000:3000"

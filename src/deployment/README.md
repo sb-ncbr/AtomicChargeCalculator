@@ -17,7 +17,7 @@ A quicker way of running ACC II locally is to use `docker compose`. This will st
 
 *Note:* If you are using Windows, you might encounter the following error during `api` container startup:
 ```
-exec /acc2/entrypoint.sh: no such file or directory
+exec /acc/entrypoint.sh: no such file or directory
 ```
 
 This is because of line endings and can be fixed by running `dos2unix` on the `src/backend/entrypoint.sh` file.

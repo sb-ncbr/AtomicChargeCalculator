@@ -76,7 +76,7 @@ jobs:
               
               echo "Building chargefw2 base image ..."
               cd ../../
-              docker build -t chargefw2-base:local -f ./src/backend/Dockerfile.chargefw2 .
+              docker build -t chargefw2-base:acc -f ./ChargeFW2/Dockerfile .
               cd ./src/deployment
 
               docker compose $COMPOSE_FILES build --no-cache api
@@ -114,7 +114,7 @@ jobs:
               
               echo "Building chargefw2 base image ..."
               cd ../../
-              docker build -t chargefw2-base:local -f ./src/backend/Dockerfile.chargefw2 . --no-cache
+              docker build -t chargefw2-base:acc -f ./ChargeFW2/Dockerfile . --no-cache
               cd ./src/deployment
 
               docker compose $COMPOSE_FILES build --no-cache

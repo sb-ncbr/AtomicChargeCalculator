@@ -34,10 +34,10 @@ services:
     container_name: acc-api
     build: 
       context: ../backend
-      dockerfile: Dockerfile.app
+      dockerfile: Dockerfile
     environment:
       ACC2_DB_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-postgres}"
-      CHARGEFW2_INSTALL_DIR: ${CHARGEFW2_INSTALL_DIR:-/ChargeFW2/build}
+      CHARGEFW2_INSTALL_DIR: ${CHARGEFW2_INSTALL_DIR:-/ChargeFW2/}
     depends_on:
       db:
         condition: service_healthy

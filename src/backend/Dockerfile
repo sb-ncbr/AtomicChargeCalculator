@@ -1,4 +1,6 @@
-FROM chargefw2-base:local
+FROM chargefw2-base:acc
+
+USER root
 
 ENV POETRY_HOME=/opt/poetry
 ENV POETRY_VIRTUALENVS_CREATE=false

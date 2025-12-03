@@ -75,7 +75,7 @@ export default class MolstarPartialCharges {
   async load(
     url: string,
     format: BuiltInTrajectoryFormat = "mmcif",
-    targetWebApp: TargetWebApp = "ACC2"
+    targetWebApp: TargetWebApp = "ACC"
   ) {
     await this.plugin.clear();
 

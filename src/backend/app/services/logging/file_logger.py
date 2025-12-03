@@ -12,7 +12,7 @@ load_dotenv()
 class FileLogger(LoggerBase):
     """Service for logging to file."""
 
-    logdir = os.environ.get("ACC2_LOG_DIR")
+    logdir = os.environ.get("ACC_LOG_DIR")
 
     def __init__(self, file_name: str = "logs.log") -> None:
         super().__init__()

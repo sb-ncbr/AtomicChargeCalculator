@@ -14,7 +14,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      ACC2_DB_URL: postgresql://postgres:password_dev@db:5432/postgres_dev
+      ACC_DB_URL: postgresql://postgres:password_dev@db:5432/postgres_dev
       CHARGEFW2_INSTALL_DIR: /ChargeFW2/build
       OIDC_CLIENT_SECRET: client-secret
       OIDC_CLIENT_ID: client-id

@@ -62,7 +62,7 @@ export const useComputationMutations = () => {
       await molstar.load(
         `${baseApiUrl}/charges/${computationId}/mmcif${search}`,
         "mmcif",
-        "ACC2"
+        "ACC"
       );
     },
   });

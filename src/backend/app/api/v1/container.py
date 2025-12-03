@@ -39,7 +39,7 @@ class Container(containers.DeclarativeContainer):
     io = providers.Singleton(IOLocal)
 
     # database
-    db = providers.Singleton(Database, db_url=os.environ.get("ACC2_DB_URL"))
+    db = providers.Singleton(Database, db_url=os.environ.get("ACC_DB_URL"))
     session_manager = providers.Singleton(
         SessionManager, session_factory=db.provided.session_factory
     )
@@ -84,7 +84,7 @@ class Container(containers.DeclarativeContainer):
         io=io_service,
         mmcif_service=mmcif_service,
         calculation_storage=storage_service,
-        max_workers=int(os.environ.get("ACC2_MAX_WORKERS") or 4),
-        max_concurrent_calculations=int(os.environ.get("ACC2_MAX_CONCURRENT_CALCULATIONS") or 4),
+        max_workers=int(os.environ.get("ACC_MAX_WORKERS") or 4),
+        max_concurrent_calculations=int(os.environ.get("ACC_MAX_CONCURRENT_CALCULATIONS") or 4),
     )
     oidc_service = providers.Singleton(OIDCService, logger=logger_service)

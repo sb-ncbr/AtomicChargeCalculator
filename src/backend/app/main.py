@@ -24,8 +24,8 @@ def move_example_files() -> None:
         raise EnvironmentError("Could not load environment variables.")
 
     # Move example files to example directory
-    if not (examples_dir := os.environ.get("ACC2_EXAMPLES_DIR")):
-        raise EnvironmentError("ACC2_EXAMPLES_DIR environment variable is not set.")
+    if not (examples_dir := os.environ.get("ACC_EXAMPLES_DIR")):
+        raise EnvironmentError("ACC_EXAMPLES_DIR environment variable is not set.")
 
     if os.path.exists(examples_dir):
         shutil.rmtree(examples_dir, ignore_errors=True)
@@ -62,7 +62,7 @@ def create_app() -> FastAPI:
             "http://localhost",
             "http://127.0.0.1:5173",
             "http://127.0.0.1",
-            os.environ.get("ACC2_BASE_URL", ""),
+            os.environ.get("ACC_BASE_URL", ""),
         ],
         allow_credentials=True,
         allow_methods=["*"],

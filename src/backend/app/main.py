@@ -46,7 +46,7 @@ def create_app() -> FastAPI:
     container = Container()
 
     app = FastAPI(
-        title="Atomic Charge Calculator II API",
+        title="Atomic Charge Calculator III API",
         root_path="/api",
         swagger_ui_parameters={"syntaxHighlight": False},
     )

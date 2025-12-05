@@ -14,7 +14,7 @@ export const Elixir = () => {
           <img src={ElixirLogo} alt="Elixir logo" />
         </a>
         <p>
-          Atomic Charge Calculator II is a part of services provided by ELIXIR –
+          Atomic Charge Calculator III is a part of services provided by ELIXIR –
           European research infrastructure for biological information. For other
           services provided by ELIXIR&apos;s Czech Republic Node visit{" "}
           <a

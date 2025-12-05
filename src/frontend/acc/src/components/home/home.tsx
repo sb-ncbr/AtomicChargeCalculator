@@ -5,6 +5,7 @@ import { Compute } from "@acc/components/home/sections/compute";
 import { Elixir } from "@acc/components/home/sections/elixir";
 import { Examples } from "@acc/components/home/sections/examples";
 import { License } from "@acc/components/home/sections/license";
+import { Tools } from "@acc/components/home/sections/tools";
 import { ScrollArea } from "@acc/components/ui/scroll-area";
 
 export const Home = () => {
@@ -16,6 +17,7 @@ export const Home = () => {
         <About />
         <Examples />
         <Citing />
+        <Tools />
         <License />
         <Elixir />
       </ScrollArea>

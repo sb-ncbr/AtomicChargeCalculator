@@ -1,35 +1,32 @@
-import { Section } from "../section";
+import {Section} from "../section";
 
-export const Citing = () => {
-  return (
-    <Section title="Citing">
-      <p>
-        If you found Atomic Charge Calculator III helpful, please cite:{" "}
-        <i>
-          Raček, T., Schindler, O., Toušek, D., Horský, V., Berka, K., Koča, J.,
-          & Svobodová, R. (2020).{" "}
-          <a
-            href="https://doi.org/10.1093/nar/gkaa367"
-            target="_blank"
-            referrerPolicy="no-referrer"
-            className="text-primary hover:underline" rel="noreferrer"
-          >
-            Atomic Charge Calculator II: web-based tool for the calculation of
-            partial atomic charges
-          </a>
-          . Nucleic Acids Research.
-        </i>{" "}
-        Are you interested in a research collaboration? Feel free to{" "}
-        <a
-          href="mailto:tomas.racek@muni.cz"
-          target="_blank"
-          referrerPolicy="no-referrer"
-          className="text-primary hover:underline" rel="noreferrer"
-        >
-          contact us
-        </a>
-        .
-      </p>
-    </Section>
-  );
+export const Tools = () => {
+    return (
+        <Section title="Tools">
+            <p>
+                Find out about our other tools for computing partial atomic charges:{" "}
+                <a
+                    href="https://pdbcharges.biodata.ceitec.cz"
+                    target="_blank"
+                    referrerPolicy="no-referrer"
+                    className="text-primary hover:underline" rel="noreferrer">
+                    PDBCharges</a> {" "}
+                optimised for structures from the Protein Data Bank and {" "}
+                <a href="https://alphacharges.ncbr.muni.cz" target="_blank" referrerPolicy="no-referrer"
+                   className="text-primary hover:underline" rel="noreferrer">AlphaCharges</a> {" "}
+                for structures from the AlphaFold DB.
+
+                <br/>
+                Interested in other tools from the Structural Bioinformatics group at National Centre for Biomolecular
+                Research (NCBR)?
+                Check out our <a
+                href="https://sb-ncbr-tools.biodata.ceitec.cz"
+                target="_blank"
+                referrerPolicy="no-referrer"
+                className="text-primary hover:underline" rel="noreferrer">
+                complete list
+            </a> of tools.
+            </p>
+        </Section>
+    );
 };

@@ -51,9 +51,14 @@ jobs:
           port: ${{ secrets.SSH_PORT || 22 }}
           command_timeout: 60m
           script: |
+            set -e
+
             DEPLOY_TARGET="${{ inputs.services_to_deploy }}"
             BRANCH_NAME="${{ inputs.branch_name }}"
+            
             PROJECT_ROOT="/home/ubuntu/AtomicChargeCalculator"
+            DEPLOY_DIR="$PROJECT_ROOT/src/deployment"
+            CHARGEFW2_DIR="$PROJECT_ROOT/ChargeFW2"
             
             echo "Deployment target: [$DEPLOY_TARGET] from branch [$BRANCH_NAME]"
 
@@ -77,76 +82,49 @@ jobs:
             sudo git reset --hard origin/$BRANCH_NAME
             sudo git submodule update --recursive
 
-            if [ $? -ne 0 ]; then echo "Git pull failed"; exit 1; fi;
-
-            cd ./src/deployment
+            cd $DEPLOY_DIR
             echo "Changed directory to $(pwd)"
 
             COMPOSE_FILES="-f docker-compose.yml -f docker-compose.prod.yml"
 
             if [ "$DEPLOY_TARGET" = "api" ]; then
               echo "Deploying API only ..."
-              
               docker compose $COMPOSE_FILES down api
               docker compose $COMPOSE_FILES up -d --no-deps --build --force-recreate api              
-              if [ $? -ne 0 ]; then echo "Docker compose up failed!"; exit 1; fi
-                          
               echo "API service deployment finished."
 
             elif [ "$DEPLOY_TARGET" = "api including chargefw2" ]; then
               echo "Deploying API including chargefw2 ..."
-              
               docker compose $COMPOSE_FILES down api
               
               echo "Building chargefw2 base image ..."
-              cd ../../
-              docker build -t chargefw2-base:acc -f ./ChargeFW2/Dockerfile ./ChargeFW2 --no-cache
-              cd ./src/deployment
-
+              docker build -t chargefw2-base:acc -f $CHARGEFW2_DIR/Dockerfile $CHARGEFW2_DIR --no-cache
+              
               docker compose $COMPOSE_FILES build --no-cache api
-              if [ $? -ne 0 ]; then echo "Docker compose build failed!"; exit 1; fi
-              
               docker compose $COMPOSE_FILES up -d --no-deps --force-recreate api
-              if [ $? -ne 0 ]; then echo "Docker compose up failed!"; exit 1; fi
-              
               echo "API service deployment with ChargeFW2 finished."
 
             elif [ "$DEPLOY_TARGET" = "nginx" ]; then
               echo "Deploying nginx ..."
-              
               docker compose $COMPOSE_FILES down nginx
-              
               docker compose $COMPOSE_FILES up -d --no-deps --build --force-recreate nginx
-              if [ $? -ne 0 ]; then echo "Docker compose up failed!"; exit 1; fi
-              
               echo "Nginx service deployment finished."
 
             elif [ "$DEPLOY_TARGET" = "web" ]; then
               echo "Deploying web ..."
-              
               docker compose $COMPOSE_FILES down web
-              
               docker compose $COMPOSE_FILES up -d --no-deps --build --force-recreate web
-              if [ $? -ne 0 ]; then echo "Docker compose up failed!"; exit 1; fi
-              
               echo "Web service deployment finished."
 
             elif [ "$DEPLOY_TARGET" = "all" ]; then
               echo "Deploying all services ..."
-              
               docker compose $COMPOSE_FILES down --remove-orphans
               
               echo "Building chargefw2 base image ..."
-              cd ../../
-              docker build -t chargefw2-base:acc -f ./ChargeFW2/Dockerfile ./ChargeFW2 --no-cache
-              cd ./src/deployment
+              docker build -t chargefw2-base:acc -f $CHARGEFW2_DIR/Dockerfile $CHARGEFW2_DIR --no-cache
 
               docker compose $COMPOSE_FILES build --no-cache
-              if [ $? -ne 0 ]; then echo "Docker compose build failed!"; exit 1; fi
-
               docker compose $COMPOSE_FILES up -d --force-recreate
-              if [ $? -ne 0 ]; then echo "Docker compose up failed!"; exit 1; fi
-              
               echo "All services deployment finished."
 
             else

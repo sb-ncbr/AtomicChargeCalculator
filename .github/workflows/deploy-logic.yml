@@ -87,52 +87,33 @@ jobs:
 
             COMPOSE_FILES="-f docker-compose.yml -f docker-compose.prod.yml"
 
-            if [ "$DEPLOY_TARGET" = "api" ]; then
-              echo "Deploying API only ..."
-              docker compose $COMPOSE_FILES down api
-              docker compose $COMPOSE_FILES up -d --no-deps --build --force-recreate api              
-              echo "API service deployment finished."
+            case "$DEPLOY_TARGET" in
+                "api" | "web" | "nginx")
+                    echo "Deploying $DEPLOY_TARGET (Fast Mode)..."
+                    docker compose $COMPOSE_FILES up -d --no-deps --build --force-recreate "$DEPLOY_TARGET"
+                    ;;
 
-            elif [ "$DEPLOY_TARGET" = "api including chargefw2" ]; then
-              echo "Deploying API including chargefw2 ..."
-              docker compose $COMPOSE_FILES down api
-              
-              echo "Building chargefw2 base image ..."
-              docker build -t chargefw2-base:acc -f $CHARGEFW2_DIR/Dockerfile $CHARGEFW2_DIR --no-cache
-              
-              docker compose $COMPOSE_FILES build --no-cache api
-              docker compose $COMPOSE_FILES up -d --no-deps --force-recreate api
-              echo "API service deployment with ChargeFW2 finished."
+                "api including chargefw2")
+                    echo "Deploying API + ChargeFW2 (Deep Update)..."
+                    docker build -t chargefw2-base:acc -f $CHARGEFW2_DIR/Dockerfile $CHARGEFW2_DIR --no-cache
+                    docker compose $COMPOSE_FILES build --no-cache api
+                    docker compose $COMPOSE_FILES up -d --no-deps --force-recreate api
+                    ;;
 
-            elif [ "$DEPLOY_TARGET" = "nginx" ]; then
-              echo "Deploying nginx ..."
-              docker compose $COMPOSE_FILES down nginx
-              docker compose $COMPOSE_FILES up -d --no-deps --build --force-recreate nginx
-              echo "Nginx service deployment finished."
+                "all")
+                    echo "Deploying EVERYTHING..."
+                    docker build -t chargefw2-base:acc -f $CHARGEFW2_DIR/Dockerfile $CHARGEFW2_DIR --no-cache
+                    docker compose $COMPOSE_FILES build --no-cache
+                    docker compose $COMPOSE_FILES up -d --force-recreate
+                    ;;
 
-            elif [ "$DEPLOY_TARGET" = "web" ]; then
-              echo "Deploying web ..."
-              docker compose $COMPOSE_FILES down web
-              docker compose $COMPOSE_FILES up -d --no-deps --build --force-recreate web
-              echo "Web service deployment finished."
+                *)
+                    echo "Error: Unknown target $DEPLOY_TARGET"
+                    exit 1
+                    ;;
+            esac
 
-            elif [ "$DEPLOY_TARGET" = "all" ]; then
-              echo "Deploying all services ..."
-              docker compose $COMPOSE_FILES down --remove-orphans
-              
-              echo "Building chargefw2 base image ..."
-              docker build -t chargefw2-base:acc -f $CHARGEFW2_DIR/Dockerfile $CHARGEFW2_DIR --no-cache
-
-              docker compose $COMPOSE_FILES build --no-cache
-              docker compose $COMPOSE_FILES up -d --force-recreate
-              echo "All services deployment finished."
-
-            else
-              echo "Error: Invalid deployment target: $DEPLOY_TARGET"
-              exit 1
-            fi
-
-            echo "Pruning old untagged and unused Docker images..."
+            echo "Pruning unused images..."
             docker image prune -f
 
             echo "Deployment finished successfully."

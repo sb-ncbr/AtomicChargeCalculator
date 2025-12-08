@@ -1,5 +1,5 @@
 import Bax from "@acc/assets/images/bax.png";
-import Propofol from "@acc/assets/images/propofol.png";
+import Dinitrophenol from "@acc/assets/images/dinitrophenol.png";
 import Receptor from "@acc/assets/images/receptor.png";
 import { createSearchParams, useNavigate } from "react-router";
 
@@ -21,58 +21,6 @@ export const Examples = () => {
   return (
     <Section title="Examples">
       <div className="grid grid-cols-1 gap-8 h-full xl:grid-cols-3">
-        <Example
-          title="Dissociating hydrogens"
-          image={{ src: Propofol, alt: "Propofol" }}
-          actions={[{ name: "Phenols", action: () => goToExample("phenols") }]}
-        >
-          <p>
-            This example focuses on acid dissociation of seven phenolic drugs,
-            described in{" "}
-            <a
-              href="https://www.drugbank.ca/"
-              target="_blank"
-              referrerPolicy="no-referrer"
-              className="text-primary hover:underline"
-              rel="noreferrer"
-            >
-              DrugBank
-            </a>
-            . Their structures were obtained from{" "}
-            <a
-              href="https://pubchem.ncbi.nlm.nih.gov/"
-              target="_blank"
-              referrerPolicy="no-referrer"
-              className="text-primary hover:underline"
-              rel="noreferrer"
-            >
-              PubChem
-            </a>
-            . During the acid dissociation, these compounds release a hydrogen
-            from the phenolic OH group. Using ACC II, we can examine a relation
-            between pKa and a charge on the dissociating hydrogen. We found that
-            the higher is pKa, the lower charge the hydrogen has (see{" "}
-            <a
-              href="pka.pdf"
-              target="_blank"
-              referrerPolicy="no-referrer"
-              className="text-primary hover:underline"
-            >
-              table
-            </a>
-            ). This finding agrees with results published in{" "}
-            <a
-              href="https://pubs.acs.org/doi/full/10.1021/ci200133w"
-              target="_blank"
-              referrerPolicy="no-referrer"
-              className="text-primary hover:underline"
-              rel="noreferrer"
-            >
-              literature
-            </a>
-            .
-          </p>
-        </Example>
         <Example
           title="Apoptotic protein activation"
           image={{ src: Bax, alt: "Bax" }}
@@ -194,6 +142,58 @@ export const Examples = () => {
             membrane position reported in{" "}
             <a
               href="https://www.sciencedirect.com/science/article/pii/S0022283604016018"
+              target="_blank"
+              referrerPolicy="no-referrer"
+              className="text-primary hover:underline"
+              rel="noreferrer"
+            >
+              literature
+            </a>
+            .
+          </p>
+        </Example>
+          <Example
+          title="Dissociating hydrogens"
+          image={{ src: Dinitrophenol, alt: "2,4-Dinitrophenol" }}
+          actions={[{ name: "Phenols", action: () => goToExample("phenols") }]}
+        >
+          <p>
+            This example focuses on acid dissociation of seven phenolic drugs,
+            described in{" "}
+            <a
+              href="https://www.drugbank.ca/"
+              target="_blank"
+              referrerPolicy="no-referrer"
+              className="text-primary hover:underline"
+              rel="noreferrer"
+            >
+              DrugBank
+            </a>
+            . Their structures were obtained from{" "}
+            <a
+              href="https://pubchem.ncbi.nlm.nih.gov/"
+              target="_blank"
+              referrerPolicy="no-referrer"
+              className="text-primary hover:underline"
+              rel="noreferrer"
+            >
+              PubChem
+            </a>
+            . During the acid dissociation, these compounds release a hydrogen
+            from the phenolic OH group. Using ACC II, we can examine a relation
+            between pKa and a charge on the dissociating hydrogen. We found that
+            the higher is pKa, the lower charge the hydrogen has (see{" "}
+            <a
+              href="pka.pdf"
+              target="_blank"
+              referrerPolicy="no-referrer"
+              className="text-primary hover:underline"
+            >
+              table
+            </a>
+            ). This finding agrees with results published in{" "}
+            <a
+              href="https://pubs.acs.org/doi/full/10.1021/ci200133w"
               target="_blank"
               referrerPolicy="no-referrer"
               className="text-primary hover:underline"

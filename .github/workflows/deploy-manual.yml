@@ -1,0 +1,37 @@
+name: Deploy (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: "Select the deployment environment"
+        required: true
+        type: choice
+        options:
+          - Development
+          - Production
+      services_to_deploy:
+        description: "Select services to deploy"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - api
+          - api including chargefw2
+          - web
+          - nginx
+      branch_name:
+        description: "Branch to deploy"
+        required: true
+        default: "master"
+        type: string
+
+jobs:
+  call-deploy-logic:
+    uses: ./.github/workflows/deploy-logic.yml
+    with:
+      target_environment: ${{ github.event.inputs.target_environment }}
+      services_to_deploy: ${{ github.event.inputs.services_to_deploy }}
+      branch_name: ${{ github.event.inputs.branch_name }}
+    secrets: inherit

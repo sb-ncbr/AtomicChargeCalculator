@@ -1,26 +1,43 @@
-name: Deploy to Production
+name: Deployment Logic
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      services_to_deploy:
-        description: "Select services to deploy"
+      target_environment:
         required: true
-        default: "all"
-        type: choice
-        options:
-          - all
-          - api
-          - api including chargefw2
-          - web
-          - nginx
+        type: string
+        description: "The target environment (Development or Production)"
+      services_to_deploy:
+        required: true
+        type: string
+        description: "Services to deploy"
+      branch_name:
+        required: true
+        type: string
+        description: "The Git branch name to checkout"
+    secrets:
+      SSH_HOST:
+        required: true
+      SSH_USERNAME:
+        required: true
+      SSH_PRIVATE_KEY:
+        required: true
+      SSH_PORT:
+        required: false
+      DB_PASSWORD:
+        required: true
+      OIDC_CLIENT_ID:
+        required: true
+      OIDC_CLIENT_SECRET:
+        required: true
 
 jobs:
   deploy:
-    name: Deploy
+    name: Deploy Logic
     runs-on: ubuntu-latest
     environment:
-      name: Development
+      name: ${{ inputs.target_environment }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,17 +51,18 @@ jobs:
           port: ${{ secrets.SSH_PORT || 22 }}
           command_timeout: 60m
           script: |
-            DEPLOY_TARGET="${{ github.event.inputs.services_to_deploy }}"
-            BRANCH_NAME="${{ github.ref_name }}"
+            DEPLOY_TARGET="${{ inputs.services_to_deploy }}"
+            BRANCH_NAME="${{ inputs.branch_name }}"
+            PROJECT_ROOT="/home/ubuntu/AtomicChargeCalculator"
             
             echo "Deployment target: [$DEPLOY_TARGET] from branch [$BRANCH_NAME]"
 
             echo "Setting up environment variables ..."
-            export DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            export DB_PASSWORD=${{ secrets.DB_PASSWORD }} 
             export OIDC_CLIENT_ID=${{ secrets.OIDC_CLIENT_ID }}
             export OIDC_CLIENT_SECRET=${{ secrets.OIDC_CLIENT_SECRET }}
 
-            cd /home/ubuntu/AtomicChargeCalculator/
+            cd $PROJECT_ROOT
             echo "Changed directory to $(pwd)"
 
             echo "Pulling latest changes ..."

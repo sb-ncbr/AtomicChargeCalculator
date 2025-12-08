@@ -55,18 +55,18 @@ jobs:
 
             DEPLOY_TARGET="${{ inputs.services_to_deploy }}"
             BRANCH_NAME="${{ inputs.branch_name }}"
-            
+
             PROJECT_ROOT="/home/ubuntu/AtomicChargeCalculator"
             DEPLOY_DIR="$PROJECT_ROOT/src/deployment"
             CHARGEFW2_DIR="$PROJECT_ROOT/ChargeFW2"
-            
+
             echo "Deployment target: [$DEPLOY_TARGET] from branch [$BRANCH_NAME]"
 
             echo "Setting up environment variables ..."
-            export DB_PASSWORD=${{ secrets.DB_PASSWORD }} 
+            export DB_PASSWORD=${{ secrets.DB_PASSWORD }}
             export OIDC_CLIENT_ID=${{ secrets.OIDC_CLIENT_ID }}
             export OIDC_CLIENT_SECRET=${{ secrets.OIDC_CLIENT_SECRET }}
-            
+
             if [ "${{ inputs.target_environment }}" = "Production" ]; then
                 export VITE_BASE_API_URL="https://acc.biodata.ceitec.cz:443/api/v1"
             else

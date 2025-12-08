@@ -51,7 +51,7 @@ $ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 *Notes*: 
 - This will not work locally as the frontend app will try to make requests to the production server.
-- Environment variable `PROD_DB_PASSWORD` needs to be specified (any password).
+- Environment variable `DB_PASSWORD` needs to be specified (any password).
 
 ### Compose Files
 - `docker-compose.yml` base configuration.

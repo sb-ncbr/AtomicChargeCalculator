@@ -29957,6 +29957,12 @@ ATOM 29873 H 3HG . GLU Exp E . ? 27.322 62.587 99.933 1 12 ? 476 E 1
 ATOM 29874 O OXT . GLU Exp E . ? 24.266 59.825 102.82 1 10 ? 476 E 1
 
 loop_
+_audit_conform.dict_name
+_audit_conform.dict_version
+_audit_conform.dict_location
+mmcif_charges_v10.dic       1.0      https://sb-ncbr.github.io/charges-schema/schemas/mmcif_charges_v10.dic
+
+loop_
 _sb_ncbr_partial_atomic_charges_meta.id
 _sb_ncbr_partial_atomic_charges_meta.type
 _sb_ncbr_partial_atomic_charges_meta.method

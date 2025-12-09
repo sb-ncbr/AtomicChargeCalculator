@@ -3450,6 +3450,12 @@ _reflns.pdbx_netI_over_sigmaI
 2K7W 1 . ? ? ? ? ? ? ? ?
 
 loop_
+_audit_conform.dict_name
+_audit_conform.dict_version
+_audit_conform.dict_location
+mmcif_charges_v10.dic       1.0      https://sb-ncbr.github.io/charges-schema/schemas/mmcif_charges_v10.dic
+
+loop_
 _sb_ncbr_partial_atomic_charges_meta.id
 _sb_ncbr_partial_atomic_charges_meta.type
 _sb_ncbr_partial_atomic_charges_meta.method

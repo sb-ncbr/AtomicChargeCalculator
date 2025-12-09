@@ -70,8 +70,12 @@ export const Controls = ({
   };
 
   useEffect(() => {
-    void loadMolecule(molecules?.[0]);
-  }, [molstar]);
+    if (!molstar || !molecules?.length) return;
+
+    const firstMolecule = molecules[0];
+    context.set.structure(firstMolecule);
+    void loadMolecule(firstMolecule);
+  }, [molstar, molecules]);
 
   useEffect(() => {
     const name = context.get.methodNames?.[context.get.currentTypeId - 1];

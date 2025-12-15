@@ -68,8 +68,10 @@ jobs:
 
             if [ "${{ inputs.target_environment }}" = "Production" ]; then
                 export VITE_BASE_API_URL="https://acc.biodata.ceitec.cz:443/api/v1"
+                export NGINX_CONFIG_FILE="nginx.prod.conf"
             else
                 export VITE_BASE_API_URL="https://acc-dev.biodata.ceitec.cz:443/api/v1"
+                export NGINX_CONFIG_FILE="nginx.dev.conf"
             fi
 
             cd $PROJECT_ROOT

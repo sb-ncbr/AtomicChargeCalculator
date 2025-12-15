@@ -3,7 +3,7 @@ services:
     container_name: acc-nginx
     image: nginx
     volumes:
-      - ./nginx/nginx-dev.conf:/etc/nginx/nginx.conf:Z
+      - ./nginx/nginx.local.conf:/etc/nginx/nginx.conf:Z
       - ./nginx/snippets:/etc/nginx/snippets:Z
     networks:
       - acc-network

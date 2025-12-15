@@ -16,13 +16,10 @@ export type ControlsWrapperProps = {
 
 // Overriding the default view type for specific examples
 const exampleOverrides: Record<string, { viewType: MolstarViewType }> = {
-  "examples/receptor": {
+  "examples/pore": {
     viewType: "surface",
   },
-  "examples/1f16": {
-    viewType: "cartoon",
-  },
-  "examples/2k7w": {
+  "examples/oseltamivir": {
     viewType: "cartoon",
   },
 };

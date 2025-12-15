@@ -4,6 +4,7 @@ _atom_site.group_PDB
 _atom_site.id
 _atom_site.type_symbol
 _atom_site.label_atom_id
+_atom_site.label_alt_id
 _atom_site.label_comp_id
 _atom_site.label_seq_id
 _atom_site.label_asym_id
@@ -11,19 +12,19 @@ _atom_site.label_entity_id
 _atom_site.Cartn_x
 _atom_site.Cartn_y
 _atom_site.Cartn_z
-ATOM 1 Cl 1 UNL 0 . 1 2.268 -1.233 0.000
-ATOM 2 O 2 UNL 0 . 1 1.504 1.675 -0.000
-ATOM 3 C 3 UNL 0 . 1 0.460 0.799 -0.000
-ATOM 4 C 4 UNL 0 . 1 0.671 -0.580 0.000
-ATOM 5 C 5 UNL 0 . 1 -0.840 1.305 0.000
-ATOM 6 C 6 UNL 0 . 1 -0.417 -1.452 -0.000
-ATOM 7 C 7 UNL 0 . 1 -1.929 0.432 0.000
-ATOM 8 C 8 UNL 0 . 1 -1.717 -0.946 0.000
-ATOM 9 H 9 UNL 0 . 1 -1.012 2.378 0.000
-ATOM 10 H 10 UNL 0 . 1 -0.269 -2.529 -0.000
-ATOM 11 H 11 UNL 0 . 1 -2.941 0.827 0.000
-ATOM 12 H 12 UNL 0 . 1 -2.564 -1.626 0.000
-ATOM 13 H 13 UNL 0 . 1 2.331 1.163 -0.000
+ATOM 1 Cl Cl . UNL 0 . 1 2.268 -1.233 0.000
+ATOM 2 O O . UNL 0 . 1 1.504 1.675 -0.000
+ATOM 3 C C . UNL 0 . 1 0.460 0.799 -0.000
+ATOM 4 C C . UNL 0 . 1 0.671 -0.580 0.000
+ATOM 5 C C . UNL 0 . 1 -0.840 1.305 0.000
+ATOM 6 C C . UNL 0 . 1 -0.417 -1.452 -0.000
+ATOM 7 C C . UNL 0 . 1 -1.929 0.432 0.000
+ATOM 8 C C . UNL 0 . 1 -1.717 -0.946 0.000
+ATOM 9 H H . UNL 0 . 1 -1.012 2.378 0.000
+ATOM 10 H H . UNL 0 . 1 -0.269 -2.529 -0.000
+ATOM 11 H H . UNL 0 . 1 -2.941 0.827 0.000
+ATOM 12 H H . UNL 0 . 1 -2.564 -1.626 0.000
+ATOM 13 H H . UNL 0 . 1 2.331 1.163 -0.000
 
 loop_
 _chem_comp.id
@@ -52,7 +53,7 @@ loop_
 _audit_conform.dict_name
 _audit_conform.dict_version
 _audit_conform.dict_location
-mmcif_charges_v10.dic       1.0      https://sb-ncbr.github.io/charges-schema/schemas/mmcif_charges_v10.dic
+mmcif_charges_v10.dic 1.0 https://sb-ncbr.github.io/charges-schema/schemas/mmcif_charges_v10.dic
 
 loop_
 _sb_ncbr_partial_atomic_charges_meta.id

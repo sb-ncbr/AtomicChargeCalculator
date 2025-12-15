@@ -1,6 +1,6 @@
-import Bax from "@acc/assets/images/bax.png";
 import Dinitrophenol from "@acc/assets/images/dinitrophenol.png";
-import Receptor from "@acc/assets/images/receptor.png";
+import Oseltamivir from "@acc/assets/images/oseltamivir.png";
+import Pore from "@acc/assets/images/pore.png";
 import { createSearchParams, useNavigate } from "react-router";
 
 import { Example } from "../example";
@@ -22,137 +22,72 @@ export const Examples = () => {
     <Section title="Examples">
       <div className="grid grid-cols-1 gap-8 h-full xl:grid-cols-3">
         <Example
-          title="Apoptotic protein activation"
-          image={{ src: Bax, alt: "Bax" }}
-          actions={[
-            { name: "Activated", action: () => goToExample("1f16") },
-            { name: "Inactive", action: () => goToExample("2k7w") },
-          ]}
+            title="Pore complex"
+            image={{src: Pore, alt: "Pore Complex"}}
+            actions={[
+              {name: "Pore complex", action: () => goToExample("pore")},
+            ]}
         >
           <p>
-            BAX protein regulates an apoptosis process. In our example, we show
-            inactive BAX (PDB ID{" "}
+            The SARS-CoV-2 pore complex (PDB ID{" "}
             <a
-              href="https://www.ebi.ac.uk/pdbe/entry/pdb/1f16"
-              target="_blank"
-              referrerPolicy="no-referrer"
-              className="text-primary hover:underline"
-              rel="noreferrer"
+                href="https://www.ebi.ac.uk/pdbe/entry/pdb/8yax"
+                target="_blank"
+                referrerPolicy="no-referrer"
+                className="text-primary hover:underline"
+                rel="noreferrer"
             >
-              1f16
+              8yax
             </a>
-            ) and activated BAX (PDB ID{" "}
+            ) forming double-membrane vesicles to accommodate viral RNA synthesis and modifications [
             <a
-              href="https://www.ebi.ac.uk/pdbe/entry/pdb/2k7w"
-              target="_blank"
-              referrerPolicy="no-referrer"
-              className="text-primary hover:underline"
-              rel="noreferrer"
+                href="https://doi.org/10.1038/s41586-024-07817-y"
+                target="_blank"
+                referrerPolicy="no-referrer"
+                className="text-primary hover:underline"
+                rel="noreferrer"
             >
-              2k7w
+              source
             </a>
-            ). The activation causes a charge redistribution that also includes
-            C domain{" "}
-            <a
-              href="bax.pdf"
-              target="_blank"
-              referrerPolicy="no-referrer"
-              className="text-primary hover:underline"
-            >
-              depolarization
-            </a>
-            . This depolarization causes release of the C domain, which can then
-            penetrate mitochondrial membrane and start the apoptosis as
-            described in the{" "}
-            <a
-              href="https://doi.org/10.1371/journal.pcbi.1002565"
-              target="_blank"
-              referrerPolicy="no-referrer"
-              className="text-primary hover:underline"
-              rel="noreferrer"
-            >
-              literature
-            </a>
-            .
+            ]. Visualisation of partial charges on the surface highlights the difference between the nonpolar
+            transmembrane part (mostly
+            white due to charge around zero) and the polar surface of extracellular and cytoplasmic parts (with a mosaic
+            of blue positive and red negative charges).
           </p>
         </Example>
         <Example
-          title="Transmembrane protein"
-          image={{ src: Receptor, alt: "Receptor" }}
-          actions={[
-            { name: "Receptor", action: () => goToExample("receptor") },
-          ]}
+            title="Neuraminidase in complex with oseltamivir"
+            image={{src: Oseltamivir, alt: "Oseltamivir"}}
+            actions={[
+              {name: "Oseltamivir", action: () => goToExample("oseltamivir")},
+            ]}
         >
           <p>
-            The nicotinic acetylcholine receptor passes the cell membrane (see
-            the{" "}
+            Oseltamivir, an antiviral drug known as TAMIFLU, binds to N1 neuraminidase from Influenza A virus
+            (PDB ID{" "}
             <a
-              href="receptor.pdf"
-              target="_blank"
-              referrerPolicy="no-referrer"
-              className="text-primary hover:underline"
+                href="https://www.ebi.ac.uk/pdbe/entry/pdb/2hu4"
+                target="_blank"
+                referrerPolicy="no-referrer"
+                className="text-primary hover:underline"
+                rel="noreferrer"
             >
-              figure
+              2hu4</a>) [
+            <a
+                href="https://doi.org/10.1038/nature05114"
+                target="_blank"
+                referrerPolicy="no-referrer"
+                className="text-primary hover:underline"
+                rel="noreferrer"
+            >
+              source
             </a>
-            , part A) and serves as an ion channel (more{" "}
-            <a
-              href="https://www.sciencedirect.com/science/article/abs/pii/S0022283604016018"
-              target="_blank"
-              referrerPolicy="no-referrer"
-              className="text-primary hover:underline"
-              rel="noreferrer"
-            >
-              details
-            </a>
-            ). We obtained its structure from Protein Data Bank Europe (PDB ID{" "}
-            <a
-              href="https://www.ebi.ac.uk/pdbe/entry/pdb/2bg9"
-              target="_blank"
-              referrerPolicy="no-referrer"
-              className="text-primary hover:underline"
-              rel="noreferrer"
-            >
-              2bg9
-            </a>
-            ), added missing hydrogens via{" "}
-            <a
-              href="https://swift.cmbi.umcn.nl/whatif/"
-              target="_blank"
-              referrerPolicy="no-referrer"
-              className="text-primary hover:underline"
-              rel="noreferrer"
-            >
-              WHAT IF
-            </a>{" "}
-            and calculated the partial atomic charges using ACC II with default
-            settings. Visualization of partial charges on the surface highlights
-            the difference between nonpolar transmembrane part (mostly white due
-            to charge around zero) and polar surface of extracellular and
-            cytoplasmic parts (with mosaic of blue positive and red negative
-            charges). The{" "}
-            <a
-              href="receptor.pdf"
-              target="_blank"
-              referrerPolicy="no-referrer"
-              className="text-primary hover:underline"
-            >
-              comparison
-            </a>{" "}
-            demonstrates that this charge distribution agrees with receptor
-            membrane position reported in{" "}
-            <a
-              href="https://www.sciencedirect.com/science/article/pii/S0022283604016018"
-              target="_blank"
-              referrerPolicy="no-referrer"
-              className="text-primary hover:underline"
-              rel="noreferrer"
-            >
-              literature
-            </a>
-            .
+            ]. Oseltamivir has a negatively charged carboxylate group that interacts electrostatically with positively
+            charged arginines of the protein. Other functional groups of oseltamivir form additional electrostatic
+            interactions, which further strengthen the bond between the drug and the protein.
           </p>
         </Example>
-          <Example
+        <Example
           title="Dissociating hydrogens"
           image={{ src: Dinitrophenol, alt: "2,4-Dinitrophenol" }}
           actions={[{ name: "Phenols", action: () => goToExample("phenols") }]}

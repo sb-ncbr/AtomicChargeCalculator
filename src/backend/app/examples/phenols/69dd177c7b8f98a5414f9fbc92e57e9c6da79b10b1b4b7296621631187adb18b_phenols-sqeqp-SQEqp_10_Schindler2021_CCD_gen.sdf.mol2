@@ -4,7 +4,7 @@
 SMALL
 USER_CHARGES
 ****
-Charges calculated by ChargeFW2 0.1, method: sqeqp
+Charges calculated by ChargeFW2 3.0.0-alpha.1, method: sqeqp
 @<TRIPOS>ATOM
     1 O        -2.432   -1.753    0.001 O       0 UNL -0.645
     2 O        -1.941    2.296    0.001 O       0 UNL -0.291
@@ -47,7 +47,7 @@ Charges calculated by ChargeFW2 0.1, method: sqeqp
 SMALL
 USER_CHARGES
 ****
-Charges calculated by ChargeFW2 0.1, method: sqeqp
+Charges calculated by ChargeFW2 3.0.0-alpha.1, method: sqeqp
 @<TRIPOS>ATOM
     1 O         3.446   -0.000    0.000 O       0 UNL -0.684
     2 O        -2.733    1.097    0.001 O       0 UNL -0.295
@@ -86,7 +86,7 @@ Charges calculated by ChargeFW2 0.1, method: sqeqp
 SMALL
 USER_CHARGES
 ****
-Charges calculated by ChargeFW2 0.1, method: sqeqp
+Charges calculated by ChargeFW2 3.0.0-alpha.1, method: sqeqp
 @<TRIPOS>ATOM
     1 Cl        2.268   -1.233    0.000 Cl      0 UNL  0.010
     2 O         1.504    1.675   -0.000 O       0 UNL -0.689
@@ -121,7 +121,7 @@ Charges calculated by ChargeFW2 0.1, method: sqeqp
 SMALL
 USER_CHARGES
 ****
-Charges calculated by ChargeFW2 0.1, method: sqeqp
+Charges calculated by ChargeFW2 3.0.0-alpha.1, method: sqeqp
 @<TRIPOS>ATOM
     1 Cl        2.748   -0.970    0.000 Cl      0 UNL  0.009
     2 O        -2.335   -1.205    0.000 O       0 UNL -0.694
@@ -156,7 +156,7 @@ m_cresol
 SMALL
 USER_CHARGES
 ****
-Charges calculated by ChargeFW2 0.1, method: sqeqp
+Charges calculated by ChargeFW2 3.0.0-alpha.1, method: sqeqp
 @<TRIPOS>ATOM
     1 O         2.368   -1.099    0.000 O       0 UNL -0.700
     2 C        -1.204   -0.308   -0.000 C       0 UNL  0.034
@@ -197,7 +197,7 @@ o_cresol
 SMALL
 USER_CHARGES
 ****
-Charges calculated by ChargeFW2 0.1, method: sqeqp
+Charges calculated by ChargeFW2 3.0.0-alpha.1, method: sqeqp
 @<TRIPOS>ATOM
     1 O         1.686   -1.503    0.000 O       0 UNL -0.692
     2 C         0.638    0.653   -0.000 C       0 UNL -0.021
@@ -238,7 +238,7 @@ propofol
 SMALL
 USER_CHARGES
 ****
-Charges calculated by ChargeFW2 0.1, method: sqeqp
+Charges calculated by ChargeFW2 3.0.0-alpha.1, method: sqeqp
 @<TRIPOS>ATOM
     1 O        -0.001    1.978   -0.000 O       0 UNL -0.689
     2 C        -2.512    0.645    0.000 C       0 UNL -0.207

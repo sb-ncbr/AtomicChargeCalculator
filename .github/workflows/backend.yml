@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     container: 
       image: sbncbr/chargefw2
+      options: --user root
 
     steps:
       - name: Checkout

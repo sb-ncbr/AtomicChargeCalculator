@@ -19,7 +19,7 @@ from db.schemas.user import *  # noqa: F401
 config = context.config
 
 load_dotenv()
-config.set_main_option("sqlalchemy.url", os.environ.get("ACC2_DB_URL"))
+config.set_main_option("sqlalchemy.url", os.environ.get("ACC_DB_URL"))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

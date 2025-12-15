@@ -3,7 +3,7 @@
 # This script runs migrations before running the gunicorn server.
 # It is used in the Dockerfile.
 
-cd /acc2/app
+cd /acc/app
 
 # run database migrations
 alembic upgrade head

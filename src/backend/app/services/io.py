@@ -27,15 +27,15 @@ class IOService:
         self.io = io
         self.logger = logger
 
-        self.workdir = Path(os.environ.get("ACC2_DATA_DIR", ""))
-        self.examples_dir = Path(os.environ.get("ACC2_EXAMPLES_DIR", ""))
+        self.workdir = Path(os.environ.get("ACC_DATA_DIR", ""))
+        self.examples_dir = Path(os.environ.get("ACC_EXAMPLES_DIR", ""))
 
-        self.user_quota = int(os.environ.get("ACC2_USER_STORAGE_QUOTA_BYTES", 0))
-        self.guest_file_quota = int(os.environ.get("ACC2_GUEST_FILE_STORAGE_QUOTA_BYTES", 0))
-        self.guest_compute_quota = int(os.environ.get("ACC2_GUEST_COMPUTE_STORAGE_QUOTA_BYTES", 0))
+        self.user_quota = int(os.environ.get("ACC_USER_STORAGE_QUOTA_BYTES", 0))
+        self.guest_file_quota = int(os.environ.get("ACC_GUEST_FILE_STORAGE_QUOTA_BYTES", 0))
+        self.guest_compute_quota = int(os.environ.get("ACC_GUEST_COMPUTE_STORAGE_QUOTA_BYTES", 0))
 
-        self.max_file_size = int(os.environ.get("ACC2_MAX_FILE_SIZE_BYTES", 0))
-        self.max_upload_size = int(os.environ.get("ACC2_MAX_UPLOAD_SIZE_BYTES", 0))
+        self.max_file_size = int(os.environ.get("ACC_MAX_FILE_SIZE_BYTES", 0))
+        self.max_upload_size = int(os.environ.get("ACC_MAX_UPLOAD_SIZE_BYTES", 0))
 
         self._ensure_env_set()
 
@@ -535,26 +535,26 @@ class IOService:
 
     def _ensure_env_set(self) -> None:
         if not self.workdir.name:
-            raise EnvironmentError("ACC2_DATA_DIR environment variable is not set.")
+            raise EnvironmentError("ACC_DATA_DIR environment variable is not set.")
 
         if not self.examples_dir.name:
-            raise EnvironmentError("ACC2_EXAMPLES_DIR environment variable is not set.")
+            raise EnvironmentError("ACC_EXAMPLES_DIR environment variable is not set.")
 
         if not self.user_quota:
-            raise EnvironmentError("ACC2_USER_STORAGE_QUOTA_BYTES environment variable is not set.")
+            raise EnvironmentError("ACC_USER_STORAGE_QUOTA_BYTES environment variable is not set.")
 
         if not self.guest_file_quota:
             raise EnvironmentError(
-                "ACC2_GUEST_FILE_STORAGE_QUOTA_BYTES environment variable is not set."
+                "ACC_GUEST_FILE_STORAGE_QUOTA_BYTES environment variable is not set."
             )
 
         if not self.guest_compute_quota:
             raise EnvironmentError(
-                "ACC2_GUEST_COMPUTE_STORAGE_QUOTA_BYTES environment variable is not set."
+                "ACC_GUEST_COMPUTE_STORAGE_QUOTA_BYTES environment variable is not set."
             )
 
         if not self.max_file_size:
-            raise EnvironmentError("ACC2_MAX_FILE_SIZE_BYTES environment variable is not set.")
+            raise EnvironmentError("ACC_MAX_FILE_SIZE_BYTES environment variable is not set.")
 
         if not self.max_upload_size:
-            raise EnvironmentError("ACC2_MAX_UPLOAD_SIZE_BYTES environment variable is not set.")
+            raise EnvironmentError("ACC_MAX_UPLOAD_SIZE_BYTES environment variable is not set.")

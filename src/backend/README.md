@@ -1,4 +1,4 @@
-# Atomic Charge Calculator II API
+# Atomic Charge Calculator III API
 
 You can find additional information in [docs](../../docs/backend/).
 

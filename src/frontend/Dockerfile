@@ -3,11 +3,11 @@ WORKDIR /app
 
 RUN npm install -g pnpm
 
-COPY acc2/package.json acc2/pnpm-lock.yaml* ./
+COPY acc/package.json acc/pnpm-lock.yaml* ./
 
 RUN pnpm install --include=dev
 
-COPY acc2/ .
+COPY acc/ .
 
 ARG VITE_BASE_API_URL
 
@@ -20,7 +20,7 @@ WORKDIR /app
 
 COPY --from=builder /app/dist ./dist
 
-COPY acc2/package.json acc2/pnpm-lock.yaml* ./
+COPY acc/package.json acc/pnpm-lock.yaml* ./
 
 RUN npm install -g pnpm serve
 

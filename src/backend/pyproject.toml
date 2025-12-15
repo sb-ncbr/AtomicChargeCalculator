@@ -1,15 +1,15 @@
 [tool.poetry]
-name = "atomic-charge-calculator-2-plus"
-version = "0.1.0"
+name = "atomic-charge-calculator"
+version = "3.0.0"
 description = ""
-authors = ["Martin Pilát <you@example.com>"]
+authors = ["Martin Pilát <pilat.martin@proton.me>"]
 readme = "README.md"
 packages = [{include = "app"}]
 package-mode = false
 
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.13"
 fastapi = {extras = ["standard"], version = "^0.115.4"}
 uvicorn = {extras = ["standard"], version = "^0.32.0"}
 python-dotenv = "^1.0.1"

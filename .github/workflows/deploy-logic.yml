@@ -6,30 +6,29 @@ on:
       target_environment:
         required: true
         type: string
-        description: "The target environment (Development or Production)"
-      services_to_deploy:
-        required: true
-        type: string
-        description: "Services to deploy"
       branch_name:
         required: true
         type: string
-        description: "The Git branch name to checkout"
+      deploy_chargefw2:
+        required: true
+        type: boolean
+      deploy_api:
+        required: true
+        type: boolean
+      deploy_web:
+        required: true
+        type: boolean
+      deploy_nginx:
+        required: true
+        type: boolean
     secrets:
-      SSH_HOST:
-        required: true
-      SSH_USERNAME:
-        required: true
-      SSH_PRIVATE_KEY:
-        required: true
-      SSH_PORT:
-        required: false
-      DB_PASSWORD:
-        required: true
-      OIDC_CLIENT_ID:
-        required: true
-      OIDC_CLIENT_SECRET:
-        required: true
+      SSH_HOST: { required: true }
+      SSH_USERNAME: { required: true }
+      SSH_PRIVATE_KEY: { required: true }
+      SSH_PORT: { required: false }
+      DB_PASSWORD: { required: true }
+      OIDC_CLIENT_ID: { required: true }
+      OIDC_CLIENT_SECRET: { required: true }
 
 jobs:
   deploy:
@@ -53,19 +52,17 @@ jobs:
           script: |
             set -e
 
-            DEPLOY_TARGET="${{ inputs.services_to_deploy }}"
             BRANCH_NAME="${{ inputs.branch_name }}"
 
             PROJECT_ROOT="/home/ubuntu/AtomicChargeCalculator"
             DEPLOY_DIR="$PROJECT_ROOT/src/deployment"
             CHARGEFW2_DIR="$PROJECT_ROOT/ChargeFW2"
 
-            echo "Deployment target: [$DEPLOY_TARGET] from branch [$BRANCH_NAME]"
+            echo "Deployment Branch: [$BRANCH_NAME]"
 
             echo "Setting up environment variables ..."
             export DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            # This is only temporary, will be removed once the upgrade is completed
-            export PROD_DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+
             export OIDC_CLIENT_ID=${{ secrets.OIDC_CLIENT_ID }}
             export OIDC_CLIENT_SECRET=${{ secrets.OIDC_CLIENT_SECRET }}
 
@@ -89,31 +86,26 @@ jobs:
 
             COMPOSE_FILES="-f docker-compose.yml -f docker-compose.prod.yml"
 
-            case "$DEPLOY_TARGET" in
-                "api" | "web" | "nginx")
-                    echo "Deploying $DEPLOY_TARGET (Fast Mode)..."
-                    docker compose $COMPOSE_FILES up -d --no-deps --build --force-recreate "$DEPLOY_TARGET"
-                    ;;
+            if [ "${{ inputs.deploy_chargefw2 }}" == "true" ]; then
+                echo "Deploying ChargeFW2 Base..."
+                docker build -t chargefw2-base:acc -f $CHARGEFW2_DIR/Dockerfile $CHARGEFW2_DIR --no-cache
+            fi
 
-                "api including chargefw2")
-                    echo "Deploying API + ChargeFW2 (Deep Update)..."
-                    docker build -t chargefw2-base:acc -f $CHARGEFW2_DIR/Dockerfile $CHARGEFW2_DIR --no-cache
-                    docker compose $COMPOSE_FILES build --no-cache api
-                    docker compose $COMPOSE_FILES up -d --no-deps --force-recreate api
-                    ;;
+            if [ "${{ inputs.deploy_api }}" == "true" ]; then
+                echo "Deploying API..."
+                docker compose $COMPOSE_FILES build --no-cache api
+                docker compose $COMPOSE_FILES up -d --no-deps --force-recreate api
+            fi
 
-                "all")
-                    echo "Deploying EVERYTHING..."
-                    docker build -t chargefw2-base:acc -f $CHARGEFW2_DIR/Dockerfile $CHARGEFW2_DIR --no-cache
-                    docker compose $COMPOSE_FILES build --no-cache
-                    docker compose $COMPOSE_FILES up -d --force-recreate
-                    ;;
+            if [ "${{ inputs.deploy_web }}" == "true" ]; then
+                echo "Deploying Web..."
+                docker compose $COMPOSE_FILES up -d --no-deps --build --force-recreate web
+            fi
 
-                *)
-                    echo "Error: Unknown target $DEPLOY_TARGET"
-                    exit 1
-                    ;;
-            esac
+            if [ "${{ inputs.deploy_nginx }}" == "true" ]; then
+                echo "Deploying Nginx..."
+                docker compose $COMPOSE_FILES up -d --no-deps --build --force-recreate nginx
+            fi
 
             echo "Pruning unused images..."
             docker image prune -f

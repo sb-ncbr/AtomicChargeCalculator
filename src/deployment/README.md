@@ -17,7 +17,7 @@ A quicker way of running ACC II locally is to use `docker compose`. This will st
 
 *Note:* If you are using Windows, you might encounter the following error during `api` container startup:
 ```
-exec /acc2/entrypoint.sh: no such file or directory
+exec /acc/entrypoint.sh: no such file or directory
 ```
 
 This is because of line endings and can be fixed by running `dos2unix` on the `src/backend/entrypoint.sh` file.
@@ -51,7 +51,7 @@ $ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 *Notes*: 
 - This will not work locally as the frontend app will try to make requests to the production server.
-- Environment variable `PROD_DB_PASSWORD` needs to be specified (any password).
+- Environment variable `DB_PASSWORD` needs to be specified (any password).
 
 ### Compose Files
 - `docker-compose.yml` base configuration.

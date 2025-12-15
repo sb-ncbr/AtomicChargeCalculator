@@ -10,28 +10,40 @@ on:
         options:
           - Development
           - Production
-      services_to_deploy:
-        description: "Select services to deploy"
-        required: true
-        default: "all"
-        type: choice
-        options:
-          - all
-          - api
-          - api including chargefw2
-          - web
-          - nginx
       branch_name:
         description: "Branch to deploy"
         required: true
         default: "master"
         type: string
+      deploy_chargefw2:
+        description: "Rebuild ChargeFW2"
+        type: boolean
+        required: false
+        default: false
+      deploy_api:
+        description: "Deploy API"
+        type: boolean
+        required: false
+        default: false
+      deploy_web:
+        description: "Deploy Web"
+        type: boolean
+        required: false
+        default: false
+      deploy_nginx:
+        description: "Deploy Nginx"
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   call-deploy-logic:
     uses: ./.github/workflows/deploy-logic.yml
     with:
-      target_environment: ${{ github.event.inputs.target_environment }}
-      services_to_deploy: ${{ github.event.inputs.services_to_deploy }}
-      branch_name: ${{ github.event.inputs.branch_name }}
+      target_environment: ${{ inputs.target_environment }}
+      branch_name: ${{ inputs.branch_name }}
+      deploy_chargefw2: ${{ inputs.deploy_chargefw2 }}
+      deploy_api: ${{ inputs.deploy_api }}
+      deploy_web: ${{ inputs.deploy_web }}
+      deploy_nginx: ${{ inputs.deploy_nginx }}
     secrets: inherit

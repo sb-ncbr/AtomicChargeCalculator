@@ -27,6 +27,8 @@ services:
       ACC_DB_URL: "postgresql://prod_user:${DB_PASSWORD}@db:5432/postgres_prod"
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
+      OIDC_BASE_URL: ${OIDC_BASE_URL}
+      OIDC_REDIRECT_URL: ${OIDC_REDIRECT_URL}
     volumes:
       - /home/acc:/home/acc
       - /var/log/acc:/var/log/acc

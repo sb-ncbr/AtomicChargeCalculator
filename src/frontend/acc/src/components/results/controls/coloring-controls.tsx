@@ -30,7 +30,11 @@ export const MolstarColoringControls = ({
   const maxValueRef = useRef<HTMLInputElement>(null);
 
   const onMaxValueChange = async (maxValue: number) => {
-    void context.set.maxValue(maxValue);
+    if (!maxValueRef.current) {
+      return;
+    }
+
+    void context.set.maxValue(maxValue ? maxValue : 0);
   };
 
   const resetMaxValue = async () => {

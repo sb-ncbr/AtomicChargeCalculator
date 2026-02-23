@@ -6,13 +6,16 @@ import { combineLatest } from "rxjs";
 
 import { Busy, BusySize } from "../shared/busy";
 import { Card } from "../ui/card";
+import { MolstarColorScale } from "./controls/color-scale";
 
 export type MolstarViewerProps = {
   plugin: PluginUIContext;
+  maxCharge?: number;
 } & HTMLAttributes<HTMLElement>;
 
 export const MolstarViewer = ({
   plugin,
+  maxCharge,
   className,
   ...props
 }: MolstarViewerProps) => {
@@ -37,6 +40,14 @@ export const MolstarViewer = ({
     >
       <div className="w-full h-full relative">
         <Busy isBusy={isLoading} size={BusySize.Big} delay={100} />
+
+        {!isLoading && maxCharge !== undefined && (
+          <MolstarColorScale
+            maxCharge={maxCharge}
+            className="z-40 w-[120px] h-[40px] absolute left-3 top-3"
+          />
+        )}
+
         <Plugin plugin={plugin} />
       </div>
     </Card>

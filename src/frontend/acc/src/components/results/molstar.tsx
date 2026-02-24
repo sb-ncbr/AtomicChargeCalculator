@@ -58,10 +58,14 @@ export const MolstarViewer = ({
           )}
         >
           <div className="flex flex-row h-full w-full">
-            {!isLoading && maxCharge !== undefined && !showControls && (
+            {!isLoading && maxCharge !== undefined && (
               <MolstarColorScale
                 maxCharge={maxCharge}
-                className="z-40 w-[120px] h-[40px] absolute left-3 top-3"
+                className={cn(
+                  "z-40 w-[120px] h-[40px] absolute",
+                  showControls ? "left-[342px] top-[112px]" : "left-3 top-3",
+                  isExpanded ? "top-[132px]" : ""
+                )}
               />
             )}
 

@@ -1,6 +1,14 @@
+import { useMolstarContext } from "@acc/lib/hooks/contexts/use-molstar-context";
+import { useBehavior } from "@acc/lib/hooks/use-behavior";
 import { cn } from "@acc/lib/utils";
 import { PluginUIContext } from "molstar/lib/commonjs/mol-plugin-ui/context";
-import { Plugin } from "molstar/lib/commonjs/mol-plugin-ui/plugin";
+import { LeftPanelControls } from "molstar/lib/commonjs/mol-plugin-ui/left-panel";
+import {
+  ControlsWrapper,
+  DefaultViewport,
+  PluginContextContainer,
+} from "molstar/lib/commonjs/mol-plugin-ui/plugin";
+import { SequenceView } from "molstar/lib/commonjs/mol-plugin-ui/sequence";
 import { HTMLAttributes, useEffect, useState } from "react";
 import { combineLatest } from "rxjs";
 
@@ -20,6 +28,9 @@ export const MolstarViewer = ({
   ...props
 }: MolstarViewerProps) => {
   const [isLoading, setIsLoading] = useState(true);
+  const molstarContext = useMolstarContext();
+  const showControls = useBehavior(molstarContext.layout.showControls);
+  const isExpanded = useBehavior(molstarContext.layout.isExpanded);
 
   useEffect(() => {
     const subscription = combineLatest([
@@ -40,15 +51,56 @@ export const MolstarViewer = ({
     >
       <div className="w-full h-full relative">
         <Busy isBusy={isLoading} size={BusySize.Big} delay={100} />
+        <div
+          className={cn(
+            "w-full h-full",
+            isExpanded ? "fixed inset-0 z-50" : "relative inset-auto z-auto"
+          )}
+        >
+          <div className="flex flex-row h-full w-full">
+            {!isLoading && maxCharge !== undefined && !showControls && (
+              <MolstarColorScale
+                maxCharge={maxCharge}
+                className="z-40 w-[120px] h-[40px] absolute left-3 top-3"
+              />
+            )}
 
-        {!isLoading && maxCharge !== undefined && (
-          <MolstarColorScale
-            maxCharge={maxCharge}
-            className="z-40 w-[120px] h-[40px] absolute left-3 top-3"
-          />
-        )}
+            {showControls && (
+              <div className="relative max-w-[330px] h-full flex-1">
+                <PluginContextContainer plugin={plugin}>
+                  <LeftPanelControls />
+                </PluginContextContainer>
+              </div>
+            )}
 
-        <Plugin plugin={plugin} />
+            <div className="flex flex-1 flex-col h-full w-full">
+              {showControls && (
+                <div
+                  className={cn(
+                    "relative",
+                    isExpanded ? "h-[120px]" : "h-[100px]"
+                  )}
+                >
+                  <PluginContextContainer plugin={plugin}>
+                    <SequenceView />
+                  </PluginContextContainer>
+                </div>
+              )}
+              <div className="relative flex-1">
+                <PluginContextContainer plugin={plugin}>
+                  <DefaultViewport />
+                </PluginContextContainer>
+              </div>
+            </div>
+            {showControls && (
+              <div className="relative max-w-[300px] h-full flex-1">
+                <PluginContextContainer plugin={plugin}>
+                  <ControlsWrapper />
+                </PluginContextContainer>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </Card>
   );

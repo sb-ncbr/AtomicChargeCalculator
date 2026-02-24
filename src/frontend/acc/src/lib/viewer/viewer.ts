@@ -54,12 +54,6 @@ export default class MolstarPartialCharges {
         initial: {
           isExpanded: false,
           showControls: false,
-          regionState: {
-            bottom: "full",
-            left: "full",
-            right: "full",
-            top: "full",
-          },
         },
       },
     };

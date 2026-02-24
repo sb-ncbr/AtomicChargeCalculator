@@ -17,7 +17,7 @@ export const ControlsWrapper = ({
   molecules,
 }: ControlsWrapperProps) => {
   return (
-    <Card className="w-4/5 rounded-none mx-auto p-4 max-w-content mt-4 flex flex-col relative">
+    <Card className="w-[90%] rounded-none mx-auto p-4 max-w-content mt-4 flex flex-col relative">
       <Busy isBusy={!molstar} />
       {molstar && (
         <Controls

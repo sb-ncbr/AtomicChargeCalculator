@@ -1,6 +1,7 @@
 import { handleApiError } from "@acc/api/base";
 import { ScrollArea } from "@acc/components/ui/scroll-area";
 import { ControlsContextProvider } from "@acc/lib/contexts/controls-context";
+import { MolstarContextProvider } from "@acc/lib/contexts/molstar-context";
 import { useComputationMutations } from "@acc/lib/hooks/mutations/use-calculations";
 import MolstarPartialCharges from "@acc/lib/viewer/viewer";
 import { useEffect, useState } from "react";
@@ -74,7 +75,7 @@ export const Results = ({ computationId }: ResultsProps) => {
       <Busy isBusy={getMoleculesMutation.isPending || !molstar} fullscreen />
 
       <ScrollArea type="auto" className="relative">
-        <h2 className="w-4/5 mx-auto max-w-content mt-8 text-3xl text-primary font-bold mb-2 sm:text-5xl">
+        <h2 className="w-[90%] mx-auto max-w-content mt-8 text-3xl text-primary font-bold mb-2 sm:text-5xl">
           Computational Results
         </h2>
         <ControlsContextProvider
@@ -100,16 +101,19 @@ export const Results = ({ computationId }: ResultsProps) => {
               molstar={molstar}
             />
           )}
-          <MolstarWrapper
-            maxCharge={
-              coloringType === "charges-absolute"
-                ? maxValue
-                : coloringType === "charges-relative"
-                  ? maxCharge
-                  : undefined
-            }
-            setMolstar={setMolstar}
-          />
+
+          <MolstarContextProvider value={{ plugin: molstar?.plugin }}>
+            <MolstarWrapper
+              maxCharge={
+                coloringType === "charges-absolute"
+                  ? maxValue
+                  : coloringType === "charges-relative"
+                    ? maxCharge
+                    : undefined
+              }
+              setMolstar={setMolstar}
+            />
+          </MolstarContextProvider>
         </ControlsContextProvider>
       </ScrollArea>
     </main>

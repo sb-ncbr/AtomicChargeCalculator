@@ -30,7 +30,7 @@ export const MolstarWrapper = ({
   }, []);
 
   return (
-    <div className="relative w-4/5 mx-auto">
+    <div className={"relative w-[90%] mx-auto h-[700px]"}>
       <Busy isBusy={!plugin} size={BusySize.Big} />
       {plugin && <MolstarViewer maxCharge={maxCharge} plugin={plugin} />}
     </div>

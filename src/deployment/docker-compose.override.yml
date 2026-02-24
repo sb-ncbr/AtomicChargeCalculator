@@ -18,6 +18,8 @@ services:
       CHARGEFW2_INSTALL_DIR: /ChargeFW2/
       OIDC_CLIENT_SECRET: client-secret
       OIDC_CLIENT_ID: client-id
+      OIDC_BASE_URL: http://localhost:8000
+      OIDC_REDIRECT_URL: http://localhost:8000
   web:
     build:
       args:

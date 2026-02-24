@@ -1,6 +1,6 @@
 import MolstarPartialCharges from "@acc/lib/viewer/viewer";
 import { PluginUIContext } from "molstar/lib/commonjs/mol-plugin-ui/context";
-import { HTMLAttributes, useEffect, useRef, useState } from "react";
+import { HTMLAttributes, useEffect, useState } from "react";
 
 import { Busy, BusySize } from "../shared/busy";
 import { MolstarViewer } from "./molstar";

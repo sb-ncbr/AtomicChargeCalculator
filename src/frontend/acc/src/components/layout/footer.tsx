@@ -7,7 +7,7 @@ export const Footer = () => {
   return (
     <footer className="w-full bg-primary px-8 py-4 text-white h-footer">
       <div className="max-w-content mx-auto">
-        <span className="text-center text-xs block">
+        <span className="text-center text-xs block -mb-4">
           © {new Date().getFullYear()} SB NCBR
         </span>
         <div className="flex justify-between">
@@ -16,6 +16,11 @@ export const Footer = () => {
               <li>
                 <NavLink className="hover:underline" to={"/"}>
                   Home
+                </NavLink>
+              </li>
+              <li>
+                <NavLink className="hover:underline" to={"/wiki"}>
+                  Wiki
                 </NavLink>
               </li>
               {isAuthenticated && (
@@ -47,7 +52,10 @@ export const Footer = () => {
             >
               GitHub
             </NavLink>
-            <NavLink className="hover:underline" to="https://sb.ncbr.muni.cz/en">
+            <NavLink
+              className="hover:underline"
+              to="https://sb.ncbr.muni.cz/en"
+            >
               SB NCBR
             </NavLink>
           </div>

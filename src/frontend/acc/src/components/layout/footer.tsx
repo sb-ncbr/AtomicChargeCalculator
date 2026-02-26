@@ -19,8 +19,8 @@ export const Footer = () => {
                 </NavLink>
               </li>
               <li>
-                <NavLink className="hover:underline" to={"/wiki"}>
-                  Wiki
+                <NavLink className="hover:underline" to={"/docs"}>
+                  Documentation
                 </NavLink>
               </li>
               {isAuthenticated && (

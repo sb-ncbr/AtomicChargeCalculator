@@ -36,12 +36,12 @@ export const Nav = () => {
             Home
           </NavLink>
           <NavLink
-            to={"/wiki"}
+            to={"/docs"}
             className={({ isActive }) =>
               `${isActive ? "underline" : "no-underline"} hover:underline"`
             }
           >
-            Wiki
+            Documentation
           </NavLink>
           {isAuthenticated && (
             <>

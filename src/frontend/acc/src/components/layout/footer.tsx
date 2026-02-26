@@ -7,7 +7,7 @@ export const Footer = () => {
   return (
     <footer className="w-full bg-primary px-8 py-4 text-white h-footer">
       <div className="max-w-content mx-auto">
-        <span className="text-center text-xs block -mb-4">
+        <span className="text-center text-xs block mb-0 sm:-mb-4">
           © {new Date().getFullYear()} SB NCBR
         </span>
         <div className="flex justify-between">

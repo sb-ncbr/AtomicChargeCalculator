@@ -1,3 +1,4 @@
+// @ts-expect-error Importing markdown file as component
 import WikiMd from "@acc/assets/wiki.md";
 import { cn } from "@acc/lib/utils";
 import { Separator } from "@radix-ui/react-dropdown-menu";
@@ -53,8 +54,8 @@ export const DocumentationComponents = ({
         strong(props: HTMLAttributes<HTMLElement>) {
           return <strong className="font-bold" {...props} />;
         },
-        img(props: HTMLAttributes<HTMLImageElement>) {
-          if (["bas", "cartoon", "surface"].includes(props.alt)) {
+        img(props: { alt?: string; src: string }) {
+          if (["bas", "cartoon", "surface"].includes(props?.alt ?? "")) {
             return (
               <img
                 className="m-4 py-4 w-[25%] max-w-full inline-block box-content"

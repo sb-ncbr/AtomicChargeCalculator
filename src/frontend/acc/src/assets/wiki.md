@@ -61,7 +61,7 @@ To switch between multiple structures or charges, the user can use the select bo
 
 ## Visualisation modes
 
-ACC III features a fast Molstar viewer to visualise calculated charges. There are three standard modes the user can select – Balls and sticks, Cartoon, and Surface – see example (1F16):
+ACC III features a fast Molstar viewer to visualise calculated charges. There are three standard modes the user can select – Balls and sticks, Cartoon, and Surface:
 
 <br />
 
@@ -77,9 +77,9 @@ Note that to visualise mmCIF files, they must contain `_atom_sites category` (ch
 
 ## Colouring options
 
-Atoms are coloured by charge by default – red for negative charges and blue for positive ones. When relative colouring is selected, the colour range is adjusted automatically based on the largest absolute value of the charge computed. To have comparable colours between different structures, absolute colouring should be used instead.
+Atoms are coloured by the values of charges by default – red for negative charges and blue for positive ones. When relative colouring is selected, the colour range is adjusted automatically based on the largest absolute value of the charge computed. To have comparable colours between different structures, absolute colouring should be used instead.
 
-In cartoon mode, the colour of individual residues is determined according to the sum of charges of all the atoms comprising them. In surface mode, the point on the surface of the molecule is colored according to the nearest atom. Alternatively, colouring by charges can be disabled – colours are selected based on the elements.
+In cartoon mode, the colour of individual residues is determined according to the sum of the charges of all the atoms comprising them. In surface mode, the point on the surface of the molecule is colored according to the nearest atom. Alternatively, colouring by charges can be disabled – colours are selected based on the elements.
 
 ## Downloading data
 

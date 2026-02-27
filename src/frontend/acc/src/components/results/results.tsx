@@ -14,16 +14,6 @@ import { ControlsWrapper } from "./controls/controls-wrapper";
 import { MolstarViewType } from "./controls/view-controls";
 import { MolstarWrapper } from "./molstar-wrapper";
 
-// Overriding the default view type for specific examples
-const exampleOverrides: Record<string, { viewType: MolstarViewType }> = {
-  "examples/pore": {
-    viewType: "surface",
-  },
-  "examples/oseltamivir": {
-    viewType: "cartoon",
-  },
-};
-
 export type ResultsProps = {
   computationId: string;
 };
@@ -40,14 +30,8 @@ export const Results = ({ computationId }: ResultsProps) => {
   const [coloringType, setColoringType] =
     useState<MolstarColoringType>("charges-relative");
   const [maxValue, setMaxValue] = useState<number>(0);
-  const [viewType, setViewType] = useState<MolstarViewType>(() => {
-    if (exampleOverrides?.[computationId]?.viewType) {
-      return exampleOverrides[computationId].viewType;
-    }
-    return molstar?.type.isDefaultApplicable() ? "cartoon" : "balls-and-sticks";
-  });
+  const [viewType, setViewType] = useState<MolstarViewType>("cartoon");
   const [methodNames, setMethodNames] = useState<(string | undefined)[]>([]);
-  const [maxCharge, setMaxCharge] = useState(0);
 
   const loadMolecules = async () => {
     // make this a query
@@ -63,12 +47,6 @@ export const Results = ({ computationId }: ResultsProps) => {
   useEffect(() => {
     void loadMolecules();
   }, []);
-
-  useEffect(() => {
-    if (molstar) {
-      setMaxCharge(molstar.charges.getMaxCharge());
-    }
-  }, [molstar?.plugin.managers.structure.hierarchy.current.structures[0]]);
 
   return (
     <main className="mx-auto w-full selection:text-white selection:bg-primary mb-8 relative">
@@ -94,7 +72,7 @@ export const Results = ({ computationId }: ResultsProps) => {
             setMethodNames,
           }}
         >
-          {molstar && (
+          {molstar && molecules.length && (
             <ControlsWrapper
               computationId={computationId}
               molecules={molecules}
@@ -103,16 +81,7 @@ export const Results = ({ computationId }: ResultsProps) => {
           )}
 
           <MolstarContextProvider value={{ plugin: molstar?.plugin }}>
-            <MolstarWrapper
-              maxCharge={
-                coloringType === "charges-absolute"
-                  ? maxValue
-                  : coloringType === "charges-relative"
-                    ? maxCharge
-                    : undefined
-              }
-              setMolstar={setMolstar}
-            />
+            <MolstarWrapper setMolstar={setMolstar} molstar={molstar} />
           </MolstarContextProvider>
         </ControlsContextProvider>
       </ScrollArea>

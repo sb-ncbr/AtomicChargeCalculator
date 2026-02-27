@@ -7,7 +7,7 @@ export type MolstarContextHookType = {
     isFullScreen: BehaviorSubject<boolean>;
     isExpanded: BehaviorSubject<boolean>;
     showControls: BehaviorSubject<boolean>;
-  }
+  };
 };
 
 export const useMolstarContext = (): MolstarContextHookType => {
@@ -18,13 +18,19 @@ export const useMolstarContext = (): MolstarContextHookType => {
   }
 
   const isFullScreenRef = useRef<BehaviorSubject<boolean>>(
-    new BehaviorSubject<boolean>(context.plugin?.layout.state.expandToFullscreen ?? false)
+    new BehaviorSubject<boolean>(
+      context.plugin?.layout.state.expandToFullscreen ?? false
+    )
   );
   const isExpandedRef = useRef<BehaviorSubject<boolean>>(
-    new BehaviorSubject<boolean>(context.plugin?.layout.state.isExpanded ?? false)
+    new BehaviorSubject<boolean>(
+      context.plugin?.layout.state.isExpanded ?? false
+    )
   );
-const showControlsRef = useRef<BehaviorSubject<boolean>>(
-    new BehaviorSubject<boolean>(context.plugin?.layout.state.showControls ?? false)
+  const showControlsRef = useRef<BehaviorSubject<boolean>>(
+    new BehaviorSubject<boolean>(
+      context.plugin?.layout.state.showControls ?? false
+    )
   );
 
   useEffect(() => {
@@ -32,11 +38,14 @@ const showControlsRef = useRef<BehaviorSubject<boolean>>(
     const isExpandedSubject = isExpandedRef.current;
     const showControlsSubject = showControlsRef.current;
 
-
     const subscription = context.plugin?.layout.events.updated.subscribe(() => {
-      fullScreenSubject.next(context.plugin?.layout.state.expandToFullscreen ?? false);
+      fullScreenSubject.next(
+        context.plugin?.layout.state.expandToFullscreen ?? false
+      );
       isExpandedSubject.next(context.plugin?.layout.state.isExpanded ?? false);
-      showControlsSubject.next(context.plugin?.layout.state.showControls ?? false);
+      showControlsSubject.next(
+        context.plugin?.layout.state.showControls ?? false
+      );
     });
 
     return () => {

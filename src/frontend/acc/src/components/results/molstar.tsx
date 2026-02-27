@@ -1,7 +1,8 @@
+import { useControlsContext } from "@acc/lib/hooks/contexts/use-controls-context";
 import { useMolstarContext } from "@acc/lib/hooks/contexts/use-molstar-context";
 import { useBehavior } from "@acc/lib/hooks/use-behavior";
 import { cn } from "@acc/lib/utils";
-import { PluginUIContext } from "molstar/lib/commonjs/mol-plugin-ui/context";
+import MolstarPartialCharges from "@acc/lib/viewer/viewer";
 import { LeftPanelControls } from "molstar/lib/commonjs/mol-plugin-ui/left-panel";
 import {
   ControlsWrapper,
@@ -17,29 +18,42 @@ import { Card } from "../ui/card";
 import { MolstarColorScale } from "./controls/color-scale";
 
 export type MolstarViewerProps = {
-  plugin: PluginUIContext;
-  maxCharge?: number;
+  molstar: MolstarPartialCharges;
 } & HTMLAttributes<HTMLElement>;
 
 export const MolstarViewer = ({
-  plugin,
-  maxCharge,
+  molstar,
   className,
   ...props
 }: MolstarViewerProps) => {
+  const context = useControlsContext(molstar);
+
   const [isLoading, setIsLoading] = useState(true);
+  const [maxCharge, setMaxCharge] = useState<number | undefined>(undefined);
   const molstarContext = useMolstarContext();
   const showControls = useBehavior(molstarContext.layout.showControls);
   const isExpanded = useBehavior(molstarContext.layout.isExpanded);
 
   useEffect(() => {
     const subscription = combineLatest([
-      plugin.behaviors.state.isUpdating,
-      plugin.behaviors.state.isAnimating,
+      molstar.plugin.behaviors.state.isUpdating,
+      molstar.plugin.behaviors.state.isAnimating,
     ]).subscribe((states) => setIsLoading(states.some(Boolean)));
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const coloringType = context.get.coloringType;
+    const maxValue = context.get.maxValue;
+    setMaxCharge(
+      coloringType === "charges-absolute"
+        ? maxValue
+        : coloringType === "charges-relative"
+          ? (molstar?.charges.getMaxCharge() ?? 0)
+          : undefined
+    );
+  }, [context.get.coloringType, context.get.maxValue]);
 
   return (
     <Card
@@ -71,7 +85,7 @@ export const MolstarViewer = ({
 
             {showControls && (
               <div className="relative max-w-[330px] h-full flex-1">
-                <PluginContextContainer plugin={plugin}>
+                <PluginContextContainer plugin={molstar.plugin}>
                   <LeftPanelControls />
                 </PluginContextContainer>
               </div>
@@ -85,20 +99,20 @@ export const MolstarViewer = ({
                     isExpanded ? "h-[120px]" : "h-[100px]"
                   )}
                 >
-                  <PluginContextContainer plugin={plugin}>
+                  <PluginContextContainer plugin={molstar.plugin}>
                     <SequenceView />
                   </PluginContextContainer>
                 </div>
               )}
               <div className="relative flex-1">
-                <PluginContextContainer plugin={plugin}>
+                <PluginContextContainer plugin={molstar.plugin}>
                   <DefaultViewport />
                 </PluginContextContainer>
               </div>
             </div>
             {showControls && (
               <div className="relative max-w-[300px] h-full flex-1">
-                <PluginContextContainer plugin={plugin}>
+                <PluginContextContainer plugin={molstar.plugin}>
                   <ControlsWrapper />
                 </PluginContextContainer>
               </div>

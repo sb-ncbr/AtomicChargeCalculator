@@ -18,8 +18,7 @@ export const About = () => {
         </a>{" "}
         along with parameters from literature.{" "}
         <a
-          href="https://github.com/sb-ncbr/AtomicChargeCalculator/wiki"
-          target="_blank"
+          href="/docs"
           className="text-primary hover:underline"
           rel="noreferrer"
         >

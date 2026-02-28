@@ -30,10 +30,18 @@ export const Nav = () => {
           <NavLink
             to={"/"}
             className={({ isActive }) =>
-              `${isActive ? "underline" : "no-underline"} hover:underline"`
+              `${isActive ? "underline" : "no-underline"} hover:underline`
             }
           >
             Home
+          </NavLink>
+          <NavLink
+            to={"/docs"}
+            className={({ isActive }) =>
+              `${isActive ? "underline" : "no-underline"} hover:underline`
+            }
+          >
+            Documentation
           </NavLink>
           {isAuthenticated && (
             <>

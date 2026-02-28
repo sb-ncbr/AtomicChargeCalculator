@@ -115,7 +115,7 @@ export const Examples = () => {
               PubChem
             </a>
             . During the acid dissociation, these compounds release a hydrogen
-            from the phenolic OH group. Using ACC II, we can examine a relation
+            from the phenolic OH group. Using ACC III, we can examine a relation
             between pKa and a charge on the dissociating hydrogen. We found that
             the higher is pKa, the lower charge the hydrogen has (see{" "}
             <a

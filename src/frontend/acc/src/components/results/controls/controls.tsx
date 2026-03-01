@@ -51,6 +51,8 @@ export const Controls = ({
         onError: (error) => toast.error(handleApiError(error)),
         onSuccess: async () => {
           context.set.methodNames(molstar.charges.getMethodNames());
+          await context.set.coloringType("charges");
+          await context.set.maxValue(molstar.charges.getMaxCharge());
           setMmcifLoaded(true);
         },
       }

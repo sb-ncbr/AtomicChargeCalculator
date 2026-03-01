@@ -1,31 +1,53 @@
+import { useControlsContext } from "@acc/lib/hooks/contexts/use-controls-context";
+import { useMolstarContext } from "@acc/lib/hooks/contexts/use-molstar-context";
+import { useBehavior } from "@acc/lib/hooks/use-behavior";
 import { cn } from "@acc/lib/utils";
-import { PluginUIContext } from "molstar/lib/commonjs/mol-plugin-ui/context";
-import { Plugin } from "molstar/lib/commonjs/mol-plugin-ui/plugin";
+import MolstarPartialCharges from "@acc/lib/viewer/viewer";
+import { LeftPanelControls } from "molstar/lib/commonjs/mol-plugin-ui/left-panel";
+import {
+  ControlsWrapper,
+  DefaultViewport,
+  PluginContextContainer,
+} from "molstar/lib/commonjs/mol-plugin-ui/plugin";
+import { SequenceView } from "molstar/lib/commonjs/mol-plugin-ui/sequence";
 import { HTMLAttributes, useEffect, useState } from "react";
 import { combineLatest } from "rxjs";
 
 import { Busy, BusySize } from "../shared/busy";
 import { Card } from "../ui/card";
+import { MolstarColorScale } from "./controls/color-scale";
 
 export type MolstarViewerProps = {
-  plugin: PluginUIContext;
+  molstar: MolstarPartialCharges;
 } & HTMLAttributes<HTMLElement>;
 
 export const MolstarViewer = ({
-  plugin,
+  molstar,
   className,
   ...props
 }: MolstarViewerProps) => {
+  const context = useControlsContext(molstar);
+
   const [isLoading, setIsLoading] = useState(true);
+  const [maxCharge, setMaxCharge] = useState<number | undefined>(undefined);
+  const molstarContext = useMolstarContext();
+  const showControls = useBehavior(molstarContext.layout.showControls);
+  const isExpanded = useBehavior(molstarContext.layout.isExpanded);
 
   useEffect(() => {
     const subscription = combineLatest([
-      plugin.behaviors.state.isUpdating,
-      plugin.behaviors.state.isAnimating,
+      molstar.plugin.behaviors.state.isUpdating,
+      molstar.plugin.behaviors.state.isAnimating,
     ]).subscribe((states) => setIsLoading(states.some(Boolean)));
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const coloringType = context.get.coloringType;
+    const maxValue = context.get.maxValue;
+    setMaxCharge(coloringType === "charges" ? maxValue : undefined);
+  }, [context.get.coloringType, context.get.maxValue]);
 
   return (
     <Card
@@ -37,7 +59,60 @@ export const MolstarViewer = ({
     >
       <div className="w-full h-full relative">
         <Busy isBusy={isLoading} size={BusySize.Big} delay={100} />
-        <Plugin plugin={plugin} />
+        <div
+          className={cn(
+            "w-full h-full",
+            isExpanded ? "fixed inset-0 z-50" : "relative inset-auto z-auto"
+          )}
+        >
+          <div className="flex flex-row h-full w-full">
+            {!isLoading && maxCharge !== undefined && (
+              <MolstarColorScale
+                maxCharge={maxCharge}
+                className={cn(
+                  "z-40 w-[120px] h-[40px] absolute",
+                  showControls ? "left-[342px] top-[112px]" : "left-3 top-3",
+                  isExpanded ? "top-[132px]" : ""
+                )}
+              />
+            )}
+
+            {showControls && (
+              <div className="relative max-w-[330px] h-full flex-1">
+                <PluginContextContainer plugin={molstar.plugin}>
+                  <LeftPanelControls />
+                </PluginContextContainer>
+              </div>
+            )}
+
+            <div className="flex flex-1 flex-col h-full w-full">
+              {showControls && (
+                <div
+                  className={cn(
+                    "relative",
+                    isExpanded ? "h-[120px]" : "h-[100px]"
+                  )}
+                >
+                  <PluginContextContainer plugin={molstar.plugin}>
+                    <SequenceView />
+                  </PluginContextContainer>
+                </div>
+              )}
+              <div className="relative flex-1">
+                <PluginContextContainer plugin={molstar.plugin}>
+                  <DefaultViewport />
+                </PluginContextContainer>
+              </div>
+            </div>
+            {showControls && (
+              <div className="relative max-w-[300px] h-full flex-1">
+                <PluginContextContainer plugin={molstar.plugin}>
+                  <ControlsWrapper />
+                </PluginContextContainer>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </Card>
   );

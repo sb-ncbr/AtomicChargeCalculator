@@ -32,16 +32,18 @@ export const useControlsContext = (
     throw Error("Busy context is null.");
   }
 
-  const coloringType = async (type: MolstarColoringType) => {
+  const coloringType = async (
+    type: MolstarColoringType,
+    maxValue: number | null = null
+  ) => {
+    maxValue ??= context.maxValue;
+
     switch (type) {
       case "structure":
         await molstar.color.default();
         break;
-      case "charges-relative":
-        await molstar.color.relative();
-        break;
-      case "charges-absolute":
-        await molstar.color.absolute(context.maxValue);
+      case "charges":
+        await molstar.color.absolute(maxValue);
         break;
       default:
         console.warn(
@@ -52,13 +54,13 @@ export const useControlsContext = (
   };
 
   const maxValue = async (value: number): Promise<void> => {
-    await molstar.color.absolute(value);
     context.setMaxValue(value);
+    await coloringType(context.coloringType, value);
   };
 
   const viewType = async (type: MolstarViewType) => {
     switch (type) {
-      case "balls-and-sticks":
+      case "ball-and-stick":
         await molstar.type.ballAndStick();
         break;
       case "cartoon":
@@ -66,12 +68,18 @@ export const useControlsContext = (
         break;
       case "surface":
         await molstar.type.surface();
+        if (context.coloringType === "structure") {
+          await coloringType("charges");
+        }
+
         break;
       default:
         console.error(
           `Invalid Molstar view type. ('${type}'), nothing changed.`
         );
+        return;
     }
+
     context.setViewType(type);
   };
 

@@ -50,11 +50,6 @@ export const Controls = ({
       {
         onError: (error) => toast.error(handleApiError(error)),
         onSuccess: async () => {
-          await Promise.all([
-            await context.set.viewType(context.get.viewType),
-            await context.set.coloringType("charges-relative"),
-          ]);
-
           context.set.methodNames(molstar.charges.getMethodNames());
           setMmcifLoaded(true);
         },
@@ -129,7 +124,10 @@ export const Controls = ({
             />
             <MolstarChargesetControls molstar={molstar} />
           </div>
-          <MolstarViewControls molstar={molstar} />
+          <MolstarViewControls
+            molstar={molstar}
+            computationId={computationId}
+          />
           <MolstarColoringControls molstar={molstar} />
         </div>
       )}

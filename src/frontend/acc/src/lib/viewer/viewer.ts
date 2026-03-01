@@ -54,12 +54,6 @@ export default class MolstarPartialCharges {
         initial: {
           isExpanded: false,
           showControls: false,
-          regionState: {
-            bottom: "full",
-            left: "full",
-            right: "full",
-            top: "full",
-          },
         },
       },
     };
@@ -69,7 +63,11 @@ export default class MolstarPartialCharges {
     const plugin = new PluginUIContext(specs);
     await plugin.init();
 
-    return new MolstarPartialCharges(plugin);
+    const molstar = new MolstarPartialCharges(plugin);
+
+    molstar.plugin.behaviors.layout.leftPanelTabName.next("data");
+
+    return molstar;
   }
 
   async load(
@@ -132,6 +130,12 @@ export default class MolstarPartialCharges {
       SbNcbrPartialChargesPropertyProvider.set(model, { typeId });
     },
     getMaxCharge: () => {
+      if (
+        this.plugin.managers.structure.hierarchy.current.structures.length === 0
+      ) {
+        return 0;
+      }
+
       const model = this.getModel();
       if (!model) throw new Error("No model loaded.");
       const maxCharge =
@@ -156,8 +160,9 @@ export default class MolstarPartialCharges {
         absolute: true,
       });
     },
-    relative: async () => {
+    relative: async (max?: number) => {
       await this.updateColor(this.partialChargesColorProps.name, {
+        ...(max ? { maxAbsoluteCharge: max } : {}),
         absolute: false,
       });
     },

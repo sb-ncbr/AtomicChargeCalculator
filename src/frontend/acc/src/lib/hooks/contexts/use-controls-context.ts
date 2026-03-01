@@ -42,10 +42,7 @@ export const useControlsContext = (
       case "structure":
         await molstar.color.default();
         break;
-      case "charges-relative":
-        await molstar.color.relative(maxValue);
-        break;
-      case "charges-absolute":
+      case "charges":
         await molstar.color.absolute(maxValue);
         break;
       default:
@@ -72,7 +69,7 @@ export const useControlsContext = (
       case "surface":
         await molstar.type.surface();
         if (context.coloringType === "structure") {
-          await coloringType("charges-relative");
+          await coloringType("charges");
         }
 
         break;

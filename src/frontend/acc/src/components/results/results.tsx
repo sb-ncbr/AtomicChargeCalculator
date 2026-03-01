@@ -28,7 +28,7 @@ export const Results = ({ computationId }: ResultsProps) => {
   const [currentTypeId, setCurrentTypeId] = useState<number>(1);
   const [structure, setStructure] = useState<string>(molecules[0]);
   const [coloringType, setColoringType] =
-    useState<MolstarColoringType>("charges-relative");
+    useState<MolstarColoringType>("charges");
   const [maxValue, setMaxValue] = useState<number>(0);
   const [viewType, setViewType] = useState<MolstarViewType>("cartoon");
   const [methodNames, setMethodNames] = useState<(string | undefined)[]>([]);

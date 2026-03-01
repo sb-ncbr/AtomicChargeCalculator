@@ -46,13 +46,7 @@ export const MolstarViewer = ({
   useEffect(() => {
     const coloringType = context.get.coloringType;
     const maxValue = context.get.maxValue;
-    setMaxCharge(
-      coloringType === "charges-absolute"
-        ? maxValue
-        : coloringType === "charges-relative"
-          ? (molstar?.charges.getMaxCharge() ?? 0)
-          : undefined
-    );
+    setMaxCharge(coloringType === "charges" ? maxValue : undefined);
   }, [context.get.coloringType, context.get.maxValue]);
 
   return (

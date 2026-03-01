@@ -13,8 +13,7 @@ import { HTMLAttributes, useEffect } from "react";
 
 export const molstarColoringTypes = [
   "structure",
-  "charges-relative",
-  "charges-absolute",
+  "charges",
 ] as const;
 
 export type MolstarColoringType = (typeof molstarColoringTypes)[number];
@@ -38,23 +37,23 @@ export const MolstarColoringControls = ({
   };
 
   useEffect(() => {
-    void context.set.coloringType("charges-relative");
+    void context.set.coloringType("charges");
     void context.set.maxValue(molstar.charges.getMaxCharge());
   }, []);
 
   return (
     <div className="flex gap-4 flex-col sm:flex-row">
       <div className="grow">
-        <h3 className="font-bold mb-2">Coloring</h3>
+        <h3 className="font-bold mb-2">Colouring</h3>
         <Select
           onValueChange={(value) =>
             context.set.coloringType(value as MolstarColoringType)
           }
           value={context.get.coloringType}
-          defaultValue="charges-relative"
+          defaultValue="charges"
         >
           <SelectTrigger className="min-w-[180px] border-2">
-            <SelectValue placeholder="Select Coloring" />
+            <SelectValue placeholder="Select Colouring" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem
@@ -66,13 +65,12 @@ export const MolstarColoringControls = ({
             >
               Structure
             </SelectItem>
-            <SelectItem value="charges-relative">Charges (relative)</SelectItem>
-            <SelectItem value="charges-absolute">Charges (absolute)</SelectItem>
+            <SelectItem value="charges">Charges</SelectItem>
           </SelectContent>
         </Select>
       </div>
       <div className="w-full col-span-1 sm:w-1/2">
-        {context.get.coloringType === "charges-absolute" && (
+        {context.get.coloringType === "charges" && (
           <>
             <h3 className="mb-2 w-fit">Max Value</h3>
             <div className="flex gap-4">

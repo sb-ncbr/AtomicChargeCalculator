@@ -5,8 +5,8 @@
 
 [Atomic Charge Calculator III](https://acc.biodata.ceitec.cz) (ACC III) is a web application for fast calculation of partial atomic charges.
 
-The computations are carried by its C++ [ChargeFW2](https://github.com/sb-ncbr/ChargeFW2), which can be also used as a standalone application.
-It features [20 empirical methods](https://github.com/sb-ncbr/AtomicChargeCalculator/blob/f22e774b1d73a365a00f1307ff101b698b9987b5/app/static/assets/methods.pdf) along with parameters from literature.
+The computations are carried out by its C++ [ChargeFW2](https://github.com/sb-ncbr/ChargeFW2), which can also be used as a standalone application.
+It features [20 empirical methods](https://acc.biodata.ceitec.cz/methods.pdf) along with parameters from the literature.
 
 ## How to cite
 If you found Atomic Charge Calculator helpful, please cite:

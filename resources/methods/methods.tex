@@ -4,13 +4,14 @@
 \usepackage{microtype}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{longtable}
 \usepackage{bm}
 \usepackage{multirow}
 \usepackage[euler-digits,euler-hat-accent]{eulervm}
 \usepackage[bibstyle=numeric,backend=biber, sorting=none]{biblatex}
 \addbibresource[datatype=bibtex]{../methods.bib}
 
-\setlrmarginsandblock{3.5cm}{2.5cm}{*}
+\setlrmarginsandblock{2.5cm}{2.5cm}{*}
 \setulmarginsandblock{2.5cm}{*}{1}
 \checkandfixthelayout
 
@@ -29,12 +30,26 @@
     urlcolor={blue!80!black}
 }
 
+\newcommand{\chapternonum}[1]{%
+  \chapter*{#1}%
+  \addcontentsline{toc}{chapter}{#1}%
+}
+
+
 \def\chapterheadstart{}
+
+
+\renewcommand{\printtoctitle}[1]{}
+
+
 
 \begin{document}
 
-\chapter*{Short description of the methods}
-\addcontentsline{toc}{chapter}{Short description of the methods}
+\chapter*{A sort description of the methods used in ACC III}
+
+\tableofcontents*
+
+\chapternonum{Empirical charge calculation methods}
 This section shortly describes the main idea of each method implemented in Atomic Charge Calculator~III. Methods here are ordered according to the publication date.
 
 For clarity, we use unifying naming scheme (which may differ from the one used in the original publication); the symbols used throughout the chapter: $q_i$ stands for charge on $i$th atom, $Q$ is the total molecular charge, $N$ is the number of atoms in a molecule and $R_{i, j}$ represents the Euclidean distance between atoms $i$ and $j$.
@@ -466,8 +481,7 @@ where $1^T$ is a row vector of ones and $N$ is the number of atoms in a molecule
 \end{align}
 
 
-\chapter*{Complexity of implemented approaches}
-\addcontentsline{toc}{chapter}{Complexity of implemented approaches}
+\chapternonum{Complexity of implemented methods}
 
 The following table summarizes information about computational costs of the implemented methods, both in terms of time and memory complexity (expressed using ${\mathcal O}$ notation). The symbol $N$ denotes the number of atoms, $M$ is the number of bonds.
 \bigskip
@@ -505,8 +519,7 @@ SQE+qp & $M^3$ & $M^2$\\
 
 Methods marked with * can utilize \textit{cutoff} and \textit{cover} complexity reductions described in the next section.
 
-\chapter*{Assessment of charges quality}
-\addcontentsline{toc}{chapter}{Assessment of charges quality}
+\chapternonum{Assessment of charges quality}
 
 In order to compare two sets of charges, two descriptors are commonly used. The first one is the Pearson's correlation coefficient ($R$); the second one is the root mean square deviation ($RMSD$). In the following sections, we denote the charge sets as $X = (x_1, \ldots, x_n)$ and $Y = (y_1, \ldots, y_n)$, $\overline{x}$ and $\overline{y}$ represent the arithmetic means of $x_i$ and $y_i$ values, respectively.
 
@@ -526,8 +539,7 @@ Root mean square deviation is another measure which can be used to compare two s
 RMSD(X, Y) =\sqrt{ \ddfrac{1}{n}\sum_{i = 1}^n (x_i - y_i)^2}
 \end{align*}
 
-\chapter*{Cutoff and cover approaches}
-\addcontentsline{toc}{chapter}{Cutoff and cover approaches}
+\chapternonum{Cutoff and cover approaches}
 
 Solving the electronegativity equalization system of linear equations can be troublesome for very large structures as it requires, in general, ${\mathcal O}(N^3)$ steps and ${\mathcal O}(N^2)$ memory. The original AtomicChargeCalculator (ACC) introduced two \textit{divide and conquer} complexity reduction algorithms to overcome this issue. Since ACC only supports EEM, these approaches were called \textit{EEM Cutoff} and \textit{EEM Cover}. ACC~III extended these approaches to other applicable methods, referencing them simply as \textit{cutoff} and \textit{cover}.
 
@@ -614,8 +626,7 @@ Employing these approximative schemes may introduce some loss of accuracy when c
 \end{center}
 \end{table}
 
-\chapter*{Notes on the implementation}
-\addcontentsline{toc}{chapter}{Notes on the implementation}
+\chapternonum{Notes on the implementation}
 
 Following section presents some notes and discusses differences in implementation of the some methods compared to the description used in original publication.
 
@@ -640,8 +651,7 @@ The off-diagonal term in the hardness matrix has the form following form taken f
 J_{i, j} = \frac{\mathrm{erf}{\left(R_{i, j}{({2w_i^2 + 2w_j^2})^{-1/2}}\right)}}{R_{i, j}}
 \end{gather}
 
-\chapter*{Applications of charges}
-\addcontentsline{toc}{chapter}{Applications of charges}
+\chapternonum{Applications of charges}
 
 Partial atomic charges, obtained by empirical charge calculation methods, can be applied for example in the following fields:
 
@@ -655,6 +665,127 @@ Partial atomic charges, obtained by empirical charge calculation methods, can be
 \item molecular dynamics \cite{Rappe1991, Chenoweth2008, Nejad2018, Lee2018}
 \item study of mechanisms of chemical actions \cite{Ionescu2012, Rimac2017, Wheeler2019}
 \end{itemize}
+
+
+\chapternonum{Overview of parameter sets}
+
+The following table summarises the parameter sets available in Atomic Charge Calculator III. The name is a clickable link to the publication where the parameter set was introduced. The \emph{Coverage} column indicates the chemical elements to which each parameter set applies. The symbol ${}^{*}$ denotes parameter sets with additional restrictions on atom environments (typically related to the highest bond order), while ${}^{+}$ indicates parameter sets with additional restrictions on bond types. For full details, refer to the individual parameter files available on \href{https://github.com/sb-ncbr/ChargeFW2/tree/main/data/parameters}{GitHub}.
+
+\begin{longtable}{p{4cm} p{3.3cm} p{8cm}}
+\toprule
+Name & Coverage & Notes \\
+\midrule
+\endfirsthead
+\toprule
+Name & Coverage & Notes \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\bottomrule
+\endlastfoot
+\addlinespace[5pt]\multicolumn{3}{l}{\textbf{ABEEM}} \\\addlinespace[5pt]
+\addlinespace[5pt] \href{https://doi.org/10.1021/jp9711048}{Yang 1997} & C, H, N, O$^{*,+}$ & Parameterised to reproduce HF/STO-3G/MPA charges \\
+\addlinespace
+\hline\hline
+\addlinespace[5pt]\multicolumn{3}{l}{\textbf{Charge2}} \\\addlinespace[5pt]
+\addlinespace[5pt] \href{https://doi.org/10.1002/jcc.540030316}{Abraham 1982} & Br, C, Cl, F, H, I, N, O & Mulliken-derived electronegativities; empirical polarizabilities \\
+\addlinespace
+\hline\hline
+\addlinespace[5pt]\multicolumn{3}{l}{\textbf{Del Re}} \\\addlinespace[5pt]
+\addlinespace[5pt] \href{https://doi.org/10.1039/JR9580004031}{Del Re 1958} & C, Cl, F, H, N, O$^{+}$ & Electronegativity-based, heuristically tuned to dipole moments \\
+\addlinespace
+\hline\hline
+\addlinespace[5pt]\multicolumn{3}{l}{\textbf{DENR}} \\\addlinespace[5pt]
+\addlinespace[5pt] \href{https://doi.org/10.1021/j100161a070}{Rappe 1991} & Br, C, Cl, Cs, F, H, I, K, Li, N, Na, O, P, Rb, S, Si & Derived from experimental atomic IPs and EAs \\
+\addlinespace
+\hline\hline
+\addlinespace[5pt]\multicolumn{3}{l}{\textbf{EEM}} \\\addlinespace[5pt]
+\addlinespace[5pt] \href{https://doi.org/10.1021/ja00018a003}{Baekelandt 1991} & Al, C, H, N, O, P, Si$^{*}$ & Parameterised to reproduce HF/STO-3G/MPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1021/jp020547v}{Bultinck 2002}\\(CHELPG) & C, F, H, N, O & Parameterised to reproduce B3LYP/6-31G*/CHELPG charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1021/jp020547v}{Bultinck 2002}\\(Hirshfeld) & C, F, H, N, O & Parameterised to reproduce B3LYP/6-31G*/Hirshfeld charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1021/jp020547v}{Bultinck 2002}\\(MK) & C, F, H, N, O & Parameterised to reproduce B3LYP/6-31G*/MK charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1021/jp020547v}{Bultinck 2002}\\(Mulliken) & C, F, H, N, O & Parameterised to reproduce B3LYP/6-31G*/MPA charges \\
+\addlinespace[5pt] \href{https://doi.org/10.1021/jp020547v}{Bultinck 2002}\\(NPA) & C, F, H, N, O & Parameterised to reproduce B3LYP/6-31G*/NPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1021/jp046928l}{Bultinck 2004}\\(AIM) & C, F, H, N, O & Parameterised to reproduce B3LYP/6-31G*/AIM charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-015-0107-1}{Geidl 2015}\\(Cheminf\_b3lyp\_aim) & Br, C, Cl, F, H, I, N, O, P, S$^{*}$ & Parameterised to reproduce B3LYP/6-311G/AIM charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-015-0107-1}{Geidl 2015}\\(Cheminf\_b3lyp\_mpa) & Br, C, Cl, F, H, I, N, O, P, S$^{*}$ & Parameterised to reproduce B3LYP/6-311G/MPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-015-0107-1}{Geidl 2015}\\(Cheminf\_b3lyp\_npa) & Br, C, Cl, F, H, I, N, O, P, S$^{*}$ & Parameterised to reproduce B3LYP/6-311G/NPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-015-0107-1}{Geidl 2015}\\(Cheminf\_hf\_aim) & Br, C, Cl, F, H, I, N, O, P, S$^{*}$ & Parameterised to reproduce HF/6-311G/AIM charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-015-0107-1}{Geidl 2015}\\(Cheminf\_hf\_mpa) & Br, C, Cl, F, H, I, N, O, P, S$^{*}$ & Parameterised to reproduce HF/6-311G/MPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-015-0107-1}{Geidl 2015}\\(Cheminf\_hf\_npa) & Br, C, Cl, F, H, I, N, O, P, S$^{*}$ & Parameterised to reproduce HF/6-311G/NPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1021/ci400448n}{Ionescu 2013}\\(EX-MPA\_6-31Gd\_PCM) & C, Ca, H, N, O, S$^{*}$ & Parameterised to reproduce HF/6-31G**/MPA/polarisable-continuum-model charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1021/ci400448n}{Ionescu 2013}\\(EX-MPA\_6-31Gd\_gas) & C, Ca, H, N, O, S$^{*}$ & Parameterised to reproduce HF/6-31G**/MPA/gas-phase charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1021/ci400448n}{Ionescu 2013}\\(EX-NPA\_6-31Gd\_PCM) & C, Ca, H, N, O, S$^{*}$ & Parameterised to reproduce HF/6-31G**/NPA/polarisable-continuum-model charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1021/ci400448n}{Ionescu 2013}\\(EX-NPA\_6-31Gd\_gas) & C, Ca, H, N, O, S$^{*}$ & Parameterised to reproduce HF/6-31G**/NPA/gas-phase charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1039/b821696g}{Ouyang 2009}\\(124 calibrated set) & C, H, N, O & Parameterised to reproduce B3LYP/6-31G*/NPA charges \\
+\pagebreak
+\href{https://doi.org/10.1039/b821696g}{Ouyang 2009}\\(131 calibrated set) & C, F, H, N, O & Parameterised to reproduce B3LYP/6-31G*/NPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1039/b821696g}{Ouyang 2009}\\(hybridization-dependent) & C, H, N, O$^{a}$ & Parameterised to reproduce B3LYP/6-31G*/NPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-016-0171-1}{Racek 2016}\\(ccd2016\_mpa) & Br, C, Cl, F, H, N, O, P, S$^{*}$ & Parameterised to reproduce B3LYP/6-311G/MPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-016-0171-1}{Racek 2016}\\(ccd2016\_mpa2) & Br, C, Cl, F, H, N, O, P, S$^{*}$ & Parameterised to reproduce B3LYP/6-311G*/MPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-016-0171-1}{Racek 2016}\\(ccd2016\_npa) & Br, C, Cl, F, H, N, O, P, S$^{*}$ & Parameterised to reproduce B3LYP/6-311G/NPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-016-0171-1}{Racek 2016}\\(ccd2016\_npa2) & Br, C, Cl, F, H, N, O, P, S$^{*}$ & Parameterised to reproduce B3LYP/6-311G*/NPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.3390/i8070572}{Svobodova 2007}\\(cbeg2) & C, H, N, O, S$^{*}$ & Parameterised to reproduce HF/STO-3G/MPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.3390/i8070572}{Svobodova 2007}\\(chal2) & Br, C, Cl, F, H, I, N, O, S$^{*}$ & Parameterised to reproduce HF/STO-3G/MPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.3390/i8070572}{Svobodova 2007}\\(chm2) & Br, C, Cl, F, Fe, H, I, N, O, S, Zn$^{*}$ & Parameterised to reproduce HF/STO-3G/MPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.3390/i8070572}{Svobodova 2007}\\(cmet2) & C, Fe, H, N, O, S, Zn$^{*}$ & Parameterised to reproduce HF/STO-3G/MPA charges \\
+\addlinespace
+\hline\hline
+\addlinespace[5pt]\multicolumn{3}{l}{\textbf{EQeq+C}} \\\addlinespace[5pt]
+\addlinespace[5pt] \href{https://doi.org/10.1021/acs.jctc.5b00037}{Martin-Noble 2015}\\(ATMO/H-I) & C, H, N, O, Se, Te, V & Bond-order corrections for EQEq, parameterised to reproduce ATMO/Hirshfeld-I charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1021/acs.jctc.5b00037}{Martin-Noble 2015}\\(MOF/REPEAT) & C, Co, Cu, H, Mg, N, Ni, O, Pd, V, Zn & Bond-order corrections for EQEq, parameterised to reproduce MOF/REPEAT charges \\
+\addlinespace
+\hline\hline
+\addlinespace[5pt]\multicolumn{3}{l}{\textbf{GDAC}} \\\addlinespace[5pt]
+\addlinespace[5pt] \href{https://doi.org/10.1021/jp0023213}{Cho 2001} & C, H, N, O, S$^{*}$ & Parameterised to reproduce B3LYP/6-31G** dipole moments and MPA charges \\
+\addlinespace[5pt]\multicolumn{3}{l}{\textbf{KCM}} \\\addlinespace[5pt]
+\addlinespace[5pt] \href{https://doi.org/10.1007/BFb0029840}{Yakovenko 2008}\\(initial) & C, H, N, O, S$^{*}$ & Parameterised to reproduce MMFF94 charges \\
+\addlinespace
+\hline\hline
+\addlinespace[5pt]\multicolumn{3}{l}{\textbf{MPEOE}} \\\addlinespace[5pt]
+\addlinespace[5pt] \href{https://doi.org/10.1021/j100374a066}{No 1990}\\(DP1) & *, C, H, N, O, S$^{*,+}$ & Empirically fitted to dipole (and quadrupole) moments \\
+\addlinespace
+\hline\hline
+\addlinespace[5pt]\multicolumn{3}{l}{\textbf{PEOE}} \\\addlinespace[5pt]
+\addlinespace[5pt] \href{https://doi.org/10.1016/0040-4020(80)80168-2}{Gasteiger 1980} & Br, C, Cl, F, H, I, N, O, S$^{*}$ & Derived directly from IPs and EAs \\
+\addlinespace
+\hline\hline
+\addlinespace[5pt]\multicolumn{3}{l}{\textbf{QEq}} \\\addlinespace[5pt]
+\addlinespace[5pt] \href{https://doi.org/10.1021/j100161a070}{Rappe 1991} & Br, C, Cl, Cs, F, H, I, K, Li, N, Na, O, P, Rb, S, Si & Derived from experimental atomic IPs and EAs \\
+\addlinespace
+\hline\hline
+\addlinespace[5pt]\multicolumn{3}{l}{\textbf{SFKEEM}} \\\addlinespace[5pt]
+\addlinespace[5pt] \href{https://doi.org/10.1021/ci050505e}{Chaves 2006} & C, F, H, N, O & Parameterised to reproduce B3LYP/6-31G*/MPA charges \\
+\addlinespace
+\hline\hline
+\addlinespace[5pt]\multicolumn{3}{l}{\textbf{SMP/QEq}} \\\addlinespace[5pt]
+\addlinespace[5pt] \href{https://doi.org/10.1021/jp8063273}{Zhang 2009} & Ag, Al, Au, Cu, K, Li, Na, Rb & Fitted to DFT (SVWN) energy derivatives \\
+\addlinespace
+\hline\hline
+\addlinespace[5pt]\multicolumn{3}{l}{\textbf{SQE}} \\\addlinespace[5pt]
+\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-021-00528-w}{Schindler 2021}\\(CCD\_gen) & Br, C, Cl, F, H, N, O, P, S$^{*,+}$ & Parameterised to reproduce B3LYP/6-311G/NPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-021-00528-w}{Schindler 2021}\\(DTP\_small) & C, H, N, O, S$^{*,+}$ & Parameterised to reproduce B3LYP/6-311G/NPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-021-00528-w}{Schindler 2021}\\(PUB\_pept) & C, H, N, O, S$^{*,+}$ & Parameterised to reproduce B3LYP/6-31G*/NPA charges \\
+\addlinespace
+\hline\hline
+\addlinespace[5pt]\multicolumn{3}{l}{\textbf{SQE+q0}} \\\addlinespace[5pt]
+\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-021-00528-w}{Schindler 2021}\\(CCD\_gen) & Br, C, Cl, F, H, N, O, P, S$^{*,+}$ & Parameterised to reproduce B3LYP/6-311G/NPA charges \\
+\pagebreak
+\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-021-00528-w}{Schindler 2021}\\(DTP\_small) & C, H, N, O, S$^{*,+}$ & Parameterised to reproduce B3LYP/6-311G/NPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-021-00528-w}{Schindler 2021}\\(PUB\_pept) & C, H, N, O, S$^{*,+}$ & Parameterised to reproduce B3LYP/6-31G*/NPA charges \\
+\addlinespace
+\hline\hline
+\addlinespace[5pt]\multicolumn{3}{l}{\textbf{SQE+qp}} \\\addlinespace[5pt]
+\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-021-00528-w}{Schindler 2021}\\(CCD\_gen) & Br, C, Cl, F, H, N, O, P, S$^{*,+}$ & Parameterised to reproduce B3LYP/6-311G/NPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-021-00528-w}{Schindler 2021}\\(DTP\_small) & C, H, N, O, S$^{*,+}$ & Parameterised to reproduce B3LYP/6-311G/NPA charges \\
+\addlinespace[5pt]\midrule\addlinespace[5pt] \href{https://doi.org/10.1186/s13321-021-00528-w}{Schindler 2021}\\(PUB\_pept) & C, H, N, O, S$^{*,+}$ & Parameterised to reproduce B3LYP/6-31G*/NPA charges \\
+\addlinespace
+\hline\hline
+\addlinespace[5pt]\multicolumn{3}{l}{\textbf{TSEF}} \\\addlinespace[5pt]
+\addlinespace[5pt] \href{https://doi.org/10.1021/j100161a070}{Rappe 1991} & Br, C, Cl, Cs, F, H, I, K, Li, N, Na, O, P, Rb, S, Si & Derived from experimental atomic IPs and EAs \\
+\addlinespace
+\end{longtable}
 
 \printbibliography
 \end{document}

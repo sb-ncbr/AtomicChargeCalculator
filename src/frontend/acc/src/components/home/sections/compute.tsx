@@ -1,6 +1,9 @@
 import { handleApiError } from "@acc/api/base";
+import { getStats } from "@acc/api/calculations/calculations";
 import { AdvancedSettings } from "@acc/components/home/advanced-settings";
+import { MissingHydrogensWarning } from "@acc/components/shared/alerts/missing-hyrdogen-warning";
 import { Busy } from "@acc/components/shared/busy";
+import { ErrorAlert } from "@acc/components/shared/error-alert";
 import { Button } from "@acc/components/ui/button";
 import { Card } from "@acc/components/ui/card";
 import { Form } from "@acc/components/ui/form";
@@ -15,7 +18,8 @@ import { useComputationMutations } from "@acc/lib/hooks/mutations/use-calculatio
 import { useFileMutations } from "@acc/lib/hooks/mutations/use-files";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronsUpDown } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { createSearchParams, useNavigate } from "react-router";
 import { toast } from "sonner";
 import z from "zod";
@@ -38,6 +42,9 @@ export const Compute = () => {
   const { fileUploadMutation } = useFileMutations();
   const { computeMutation, setupMutation } = useComputationMutations();
 
+  const [missingHydrogens, setMissingHydrogens] = useState<boolean>(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   const form = useForm<ComputeType>({
     resolver: zodResolver(computeSchema),
     defaultValues: {
@@ -54,11 +61,13 @@ export const Compute = () => {
     await fileUploadMutation.mutateAsync(data.files, {
       onError: (error) => toast.error(handleApiError(error)),
       onSuccess: async (uploadResponse) => {
+        const compId = crypto.randomUUID();
         await computeMutation.mutateAsync(
           {
             fileHashes: uploadResponse.map((file) => file.fileHash),
             configs: [],
             settings: data.settings,
+            computationId: compId,
           },
           {
             onError: (error) => toast.error(handleApiError(error)),
@@ -72,6 +81,34 @@ export const Compute = () => {
             },
           }
         );
+      },
+    });
+  };
+
+  const onFileChange = async (data: FileList | null) => {
+    setMissingHydrogens(false);
+    setUploadError(null);
+
+    if (!data) {
+      return;
+    }
+
+    await fileUploadMutation.mutateAsync(data, {
+      onError: (error) => {
+        setUploadError(handleApiError(error));
+        form.resetField("files");
+      },
+      onSuccess: async (uploadResponse) => {
+        const promises = uploadResponse.map(({ fileHash }) =>
+          getStats(fileHash)
+        );
+        const stats = await Promise.all(promises);
+        const isMissingHydrogen = stats.some(
+          (stat) =>
+            (stat.atomTypeCounts.find(({ symbol }) => symbol === "H")?.count ??
+              0) === 0
+        );
+        setMissingHydrogens(isMissingHydrogen);
       },
     });
   };
@@ -113,13 +150,24 @@ export const Compute = () => {
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <div className="my-4 flex flex-col gap-2">
             <Label className="font-bold text-lg">Upload structures</Label>
-            <Input
-              {...form.register("files")}
-              id="files"
-              type="file"
-              accept=".sdf,.mol2,.pdb,.mmcif,.cif"
-              className="border-2 border-primary cursor-pointer xs:w-fit"
-              multiple
+            <Controller
+              name="files"
+              control={form.control}
+              render={({ field }) => (
+                <Input
+                  id="files"
+                  type="file"
+                  accept=".sdf,.mol2,.pdb,.mmcif,.cif"
+                  className="border-2 border-primary cursor-pointer xs:w-fit max-w-full"
+                  onChange={(e) => {
+                    field.onChange(e.target.files);
+                    void onFileChange(e.target.files);
+                  }}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  multiple
+                />
+              )}
             />
             <p className="text-sm text-black text-opacity-40">
               Supported filetypes are <span className="font-bold">sdf</span>,
@@ -127,9 +175,15 @@ export const Compute = () => {
               <span className="font-bold"> pdb</span>,
               <span className="font-bold"> mmcif</span>. You can upload one or
               multiple files at the same time. Maximum allowed upload size is
-              <span className="font-bold"> 250 MB</span>.
+              <span className="font-bold"> 50 MB</span>.
             </p>
           </div>
+
+          {missingHydrogens && <MissingHydrogensWarning />}
+          {uploadError !== null && (
+            <ErrorAlert title="Upload error" description={uploadError} />
+          )}
+
           <div className="flex gap-4 flex-col sm:flex-row">
             <Button
               type="submit"

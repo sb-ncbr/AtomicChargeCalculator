@@ -9,7 +9,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "ui:add": "pnpm dlx shadcn@latest add --src-dir --path src/components/ui"
+    "ui:add": "pnpm dlx shadcn@latest add --path src/components/ui"
   },
   "dependencies": {
     "@eslint/eslintrc": "^3.3.4",

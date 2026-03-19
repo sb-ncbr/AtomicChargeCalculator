@@ -21,8 +21,8 @@ export const setup = async (
 export const compute = async (
   fileHashes: string[],
   configs: ComputationConfig[],
-  settings?: AdvancedSettings,
-  computationId?: string
+  computationId: string,
+  settings?: AdvancedSettings
 ): Promise<string> => {
   const body = {
     fileHashes,
@@ -30,7 +30,7 @@ export const compute = async (
       method: comp.method || null,
       parameters: comp.parameters || null,
     })),
-    ...(computationId ? { computation_id: computationId } : {}),
+    computation_id: computationId,
     ...(settings ? { settings } : {}),
   };
 

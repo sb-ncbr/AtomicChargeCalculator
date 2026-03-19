@@ -12,7 +12,7 @@ type SetupMutationData = {
 };
 
 type ComputationMutationData = {
-  computationId?: string;
+  computationId: string;
   fileHashes: string[];
   configs: ComputationConfig[];
   settings?: AdvancedSettings;
@@ -49,7 +49,7 @@ export const useComputationMutations = () => {
       settings,
       configs,
     }: ComputationMutationData) =>
-      await compute(fileHashes, configs, settings, computationId),
+      await compute(fileHashes, configs, computationId, settings),
   });
 
   const loadMmcifMutation = useMutation({

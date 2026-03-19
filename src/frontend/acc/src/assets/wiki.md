@@ -28,7 +28,7 @@ Formal charges, if present, are read from an input file as well. Their sum is us
 charge, which is used by some methods (ABEEM, EEM, EQeq, Eqeq+C, QEq, SFKEEM, SMP/QEq,
 TSEF).
 
-The specification of input formal charges differs among supported file formats. ACC II reads the following:
+The specification of input formal charges differs among supported file formats. ACC III reads the following:
 
 - **SDF**: `M CHG` lines for MOL V2000; for MOL V3000, the charge is read from `CHG` property of `ATOM` records. Refer to the [documentation](https://www.daylight.com/meetings/mug05/Kappler/ctfile.pdf) for details on the format.
 

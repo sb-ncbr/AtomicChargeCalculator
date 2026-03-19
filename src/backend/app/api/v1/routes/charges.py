@@ -455,7 +455,7 @@ async def calculate_charges(
         ) from e
 
 
-# --- Route handlers used by ACC II Web ---
+# --- Route handlers used by ACC III Web ---
 
 
 @charges_router.post("/{computation_id}/methods/suitable", include_in_schema=False)

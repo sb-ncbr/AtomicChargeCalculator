@@ -217,7 +217,7 @@ async def download_file(
         ) from e
 
 
-# --- Route handlers used by ACC II Web ---
+# --- Route handlers used by ACC III Web ---
 
 
 @files_router.get(path="", include_in_schema=False)

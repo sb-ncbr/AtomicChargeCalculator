@@ -8,7 +8,7 @@ Simplest way to run the application locally is via Docker. More information is a
 ## Manual Setup
 
 ### Prerequisites
-ACC II depends on the [ChargeFW2](https://github.com/sb-ncbr/ChargeFW2) python bindings. 
+ACC III depends on the [ChargeFW2](https://github.com/sb-ncbr/ChargeFW2) python bindings. 
 
 #### [Building ChargeFW2](https://github.com/sb-ncbr/ChargeFW2/tree/master?tab=readme-ov-file#installation)
 
@@ -26,7 +26,7 @@ $ cmake .. -DCMAKE_INSTALL_PREFIX=<WHERE-TO-INSTALL> -DPYTHON_MODULE=ON
 All required environment variables are located in the [.env file](./app/.env) except `OIDC_CLIENT_ID` and `OIDC_CLIENT_SECRET` (required for Life Science auth, can be ignored for local setup). All used environment variables are described in [docs](../../docs/backend/README.md). How to obtain the abovementioned environment variables is also mentioned [here](../../docs/backend/life-science/README.md). 
 
 ### Installing dependencies
-ACC II uses [Poetry](https://python-poetry.org/) for depencency management.
+ACC III uses [Poetry](https://python-poetry.org/) for depencency management.
 
 #### Install Poetry
 ```bash

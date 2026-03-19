@@ -63,6 +63,7 @@ class ChargeFW2Local(ChargeFW2Base):
                 internal_name=parameters.internal_name,
                 method=parameters.method,
                 publication=parameters.publication,
+                notes=parameters.notes,
             )
             for parameters in parameters_list
         ]
@@ -91,6 +92,7 @@ class ChargeFW2Local(ChargeFW2Base):
             internal_name=parameters.internal_name,
             method=parameters.method,
             publication=parameters.publication,
+            notes=parameters.notes,
         )
 
     def get_suitable_methods(
@@ -122,6 +124,7 @@ class ChargeFW2Local(ChargeFW2Base):
                     internal_name=parameters.internal_name,
                     method=parameters.method,
                     publication=parameters.publication,
+                    notes=parameters.notes,
                 )
                 for parameters in parameters_list
             ]

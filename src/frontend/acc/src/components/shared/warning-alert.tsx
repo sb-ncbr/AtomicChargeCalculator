@@ -1,15 +1,26 @@
+import { cn } from "@acc/lib/utils";
 import { AlertTriangleIcon } from "lucide-react";
+import { HTMLAttributes, HTMLElementType } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 export type WarningAlertProps = {
   title: string;
   description: string;
-};
+} & HTMLAttributes<HTMLElementType>;
 
-export const WarningAlert = ({ title, description }: WarningAlertProps) => {
+export const WarningAlert = ({
+  title,
+  description,
+  className,
+}: WarningAlertProps) => {
   return (
-    <Alert className="border-yellow-200 bg-yellow-50 text-yellow-600 my-4">
+    <Alert
+      className={cn(
+        "border-yellow-200 bg-yellow-50 text-yellow-600 my-4",
+        className
+      )}
+    >
       <div className="flex gap-2">
         <AlertTriangleIcon size={15} />
         <div>

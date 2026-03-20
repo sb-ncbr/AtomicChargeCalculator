@@ -2,12 +2,14 @@ import { handleApiError } from "@acc/api/base";
 import { ScrollArea } from "@acc/components/ui/scroll-area";
 import { ControlsContextProvider } from "@acc/lib/contexts/controls-context";
 import { MolstarContextProvider } from "@acc/lib/contexts/molstar-context";
+import { useFileStatsContext } from "@acc/lib/hooks/contexts/use-file-stats-context";
 import { useComputationMutations } from "@acc/lib/hooks/mutations/use-calculations";
 import MolstarPartialCharges from "@acc/lib/viewer/viewer";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 
+import { MissingHydrogensWarning } from "../shared/alerts/missing-hydrogen-warning";
 import { Busy } from "../shared/busy";
 import { MolstarColoringType } from "./controls/coloring-controls";
 import { ControlsWrapper } from "./controls/controls-wrapper";
@@ -21,6 +23,7 @@ export type ResultsProps = {
 export const Results = ({ computationId }: ResultsProps) => {
   const navigate = useNavigate();
   const { getMoleculesMutation } = useComputationMutations();
+  const statsContext = useFileStatsContext();
 
   const [molstar, setMolstar] = useState<MolstarPartialCharges>();
   const [molecules, setMolecules] = useState<string[]>([]);
@@ -78,6 +81,10 @@ export const Results = ({ computationId }: ResultsProps) => {
               molecules={molecules}
               molstar={molstar}
             />
+          )}
+
+          {statsContext.isMissingHydrogens(computationId) && (
+            <MissingHydrogensWarning className="w-[90%] mx-auto" />
           )}
 
           <MolstarContextProvider value={{ plugin: molstar?.plugin }}>

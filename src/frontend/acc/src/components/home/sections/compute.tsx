@@ -1,7 +1,9 @@
 import { handleApiError } from "@acc/api/base";
 import { getStats } from "@acc/api/calculations/calculations";
+import { MoleculeSetStats } from "@acc/api/calculations/types";
+import { UploadResponse } from "@acc/api/files/types";
 import { AdvancedSettings } from "@acc/components/home/advanced-settings";
-import { MissingHydrogensWarning } from "@acc/components/shared/alerts/missing-hyrdogen-warning";
+import { MissingHydrogensWarning } from "@acc/components/shared/alerts/missing-hydrogen-warning";
 import { Busy } from "@acc/components/shared/busy";
 import { ErrorAlert } from "@acc/components/shared/error-alert";
 import { Button } from "@acc/components/ui/button";
@@ -14,6 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@acc/components/ui/popover";
+import { useFileStatsContext } from "@acc/lib/hooks/contexts/use-file-stats-context";
 import { useComputationMutations } from "@acc/lib/hooks/mutations/use-calculations";
 import { useFileMutations } from "@acc/lib/hooks/mutations/use-files";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -41,9 +44,16 @@ export const Compute = () => {
   const navigate = useNavigate();
   const { fileUploadMutation } = useFileMutations();
   const { computeMutation, setupMutation } = useComputationMutations();
+  const fileStatsContext = useFileStatsContext();
 
   const [missingHydrogens, setMissingHydrogens] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadResponse, setUploadResponse] = useState<UploadResponse | null>(
+    null
+  );
+  const [statsMap, setStatsMap] = useState<Record<string, MoleculeSetStats>>(
+    {}
+  );
 
   const form = useForm<ComputeType>({
     resolver: zodResolver(computeSchema),
@@ -58,31 +68,38 @@ export const Compute = () => {
   });
 
   const onSubmit = async (data: ComputeType) => {
-    await fileUploadMutation.mutateAsync(data.files, {
-      onError: (error) => toast.error(handleApiError(error)),
-      onSuccess: async (uploadResponse) => {
-        const compId = crypto.randomUUID();
-        await computeMutation.mutateAsync(
-          {
-            fileHashes: uploadResponse.map((file) => file.fileHash),
-            configs: [],
-            settings: data.settings,
-            computationId: compId,
-          },
-          {
-            onError: (error) => toast.error(handleApiError(error)),
-            onSuccess: (compId) => {
-              void navigate({
-                pathname: "results",
-                search: createSearchParams({
-                  comp_id: compId,
-                }).toString(),
-              });
-            },
-          }
-        );
+    if (uploadResponse === null) {
+      return;
+    }
+
+    const compId = crypto.randomUUID();
+
+    fileStatsContext.set(
+      compId,
+      Object.fromEntries(
+        uploadResponse.map((f) => [f.fileHash, statsMap[f.fileHash]])
+      )
+    );
+
+    await computeMutation.mutateAsync(
+      {
+        fileHashes: uploadResponse.map((file) => file.fileHash),
+        configs: [],
+        settings: data.settings,
+        computationId: compId,
       },
-    });
+      {
+        onError: (error) => toast.error(handleApiError(error)),
+        onSuccess: (compId) => {
+          void navigate({
+            pathname: "results",
+            search: createSearchParams({
+              comp_id: compId,
+            }).toString(),
+          });
+        },
+      }
+    );
   };
 
   const onFileChange = async (data: FileList | null) => {
@@ -99,14 +116,31 @@ export const Compute = () => {
         form.resetField("files");
       },
       onSuccess: async (uploadResponse) => {
+        setUploadResponse(uploadResponse);
+
         const promises = uploadResponse.map(({ fileHash }) =>
           getStats(fileHash)
+            .then((stat) => ({ fileHash, stat, error: null }))
+            .catch(() => null)
         );
-        const stats = await Promise.all(promises);
+        const stats = (await Promise.all(promises)).filter(
+          (item) => item !== null && item.stat !== null
+        ) as { fileHash: string; stat: MoleculeSetStats }[];
+
+        setStatsMap(
+          stats.reduce(
+            (prev, curr) => {
+              prev[curr.fileHash] = curr.stat;
+              return prev;
+            },
+            {} as Record<string, MoleculeSetStats>
+          )
+        );
+
         const isMissingHydrogen = stats.some(
           (stat) =>
-            (stat.atomTypeCounts.find(({ symbol }) => symbol === "H")?.count ??
-              0) === 0
+            (stat.stat.atomTypeCounts.find(({ symbol }) => symbol === "H")
+              ?.count ?? 0) === 0
         );
         setMissingHydrogens(isMissingHydrogen);
       },
@@ -114,29 +148,34 @@ export const Compute = () => {
   };
 
   const onSetup = async (data: ComputeType) => {
-    await fileUploadMutation.mutateAsync(data.files, {
-      onError: (error) => toast.error(handleApiError(error)),
-      onSuccess: async (uploadResponse) => {
-        await setupMutation.mutateAsync(
-          {
-            fileHashes: uploadResponse.map((file) => file.fileHash),
-            settings: data.settings,
-          },
-          {
-            onError: () =>
-              toast.error("Unable to setup computation. Try again later."),
-            onSuccess: (compId) => {
-              void navigate({
-                pathname: "setup",
-                search: createSearchParams({
-                  comp_id: compId,
-                }).toString(),
-              });
-            },
-          }
-        );
+    if (uploadResponse === null) {
+      return;
+    }
+
+    await setupMutation.mutateAsync(
+      {
+        fileHashes: uploadResponse.map((file) => file.fileHash),
+        settings: data.settings,
       },
-    });
+      {
+        onError: () =>
+          toast.error("Unable to setup computation. Try again later."),
+        onSuccess: (compId) => {
+          fileStatsContext.set(
+            compId,
+            Object.fromEntries(
+              uploadResponse.map((f) => [f.fileHash, statsMap[f.fileHash]])
+            )
+          );
+          void navigate({
+            pathname: "setup",
+            search: createSearchParams({
+              comp_id: compId,
+            }).toString(),
+          });
+        },
+      }
+    );
   };
 
   return (

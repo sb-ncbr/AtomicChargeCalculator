@@ -2,6 +2,8 @@ import { handleApiError } from "@acc/api/base";
 import { getStats } from "@acc/api/calculations/calculations";
 import { MoleculeSetStats } from "@acc/api/calculations/types";
 import { UploadResponse } from "@acc/api/files/types";
+import { getSuitableMethodsForFiles } from "@acc/api/methods/methods";
+import { MostSuitableMethod } from "@acc/api/methods/types";
 import { AdvancedSettings } from "@acc/components/home/advanced-settings";
 import { MissingHydrogensWarning } from "@acc/components/shared/alerts/missing-hydrogen-warning";
 import { Busy } from "@acc/components/shared/busy";
@@ -16,13 +18,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@acc/components/ui/popover";
+import { Separator } from "@acc/components/ui/separator";
 import { useFileStatsContext } from "@acc/lib/hooks/contexts/use-file-stats-context";
 import { useComputationMutations } from "@acc/lib/hooks/mutations/use-calculations";
 import { useFileMutations } from "@acc/lib/hooks/mutations/use-files";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronsUpDown } from "lucide-react";
-import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useCallback, useEffect, useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { createSearchParams, useNavigate } from "react-router";
 import { toast } from "sonner";
 import z from "zod";
@@ -54,6 +57,8 @@ export const Compute = () => {
   const [statsMap, setStatsMap] = useState<Record<string, MoleculeSetStats>>(
     {}
   );
+  const [mostSuitableMethod, setMostSuitableMethod] =
+    useState<MostSuitableMethod | null>(null);
 
   const form = useForm<ComputeType>({
     resolver: zodResolver(computeSchema),
@@ -65,6 +70,10 @@ export const Compute = () => {
         permissiveTypes: true,
       },
     },
+  });
+  const watchPermissiveTypes = useWatch({
+    control: form.control,
+    name: "settings.permissiveTypes",
   });
 
   const onSubmit = async (data: ComputeType) => {
@@ -101,6 +110,23 @@ export const Compute = () => {
       }
     );
   };
+
+  const updateMostSuitableMethod = useCallback(
+    async (fileHashes: string[]) => {
+      const suitableMethods = await getSuitableMethodsForFiles(
+        fileHashes,
+        form.getValues("settings.permissiveTypes")
+      );
+      const mostSuitableMethod = suitableMethods.methods[0];
+      const mostSuitableParams =
+        suitableMethods.parameters[mostSuitableMethod.internalName]?.[0];
+      setMostSuitableMethod({
+        method: mostSuitableMethod,
+        parameters: mostSuitableParams,
+      });
+    },
+    [form]
+  );
 
   const onFileChange = async (data: FileList | null) => {
     setMissingHydrogens(false);
@@ -178,6 +204,14 @@ export const Compute = () => {
     );
   };
 
+  useEffect(() => {
+    if (!uploadResponse) {
+      return;
+    }
+    const fileHashes = uploadResponse.map(({ fileHash }) => fileHash);
+    void updateMostSuitableMethod(fileHashes);
+  }, [uploadResponse, watchPermissiveTypes, updateMostSuitableMethod]);
+
   return (
     <Card className="w-11/12 md:w-4/5 rounded-none shadow-xl mx-auto p-4 max-w-content mb-12 mt-0 xs:mt-8 md:mt-0 relative">
       <Busy isBusy={computeMutation.isPending || fileUploadMutation.isPending}>
@@ -251,6 +285,31 @@ export const Compute = () => {
               </PopoverContent>
             </Popover>
           </div>
+
+          {mostSuitableMethod && (
+            <>
+              <Separator className="my-4" />
+
+              <p className="text-sm text-black text-opacity-40">
+                Most suitable method is{" "}
+                <span className="font-bold">
+                  {mostSuitableMethod?.method.name}
+                </span>{" "}
+                {mostSuitableMethod?.parameters ? (
+                  <span>
+                    {" "}
+                    with{" "}
+                    <span className="font-bold">
+                      {mostSuitableMethod?.parameters?.fullName}
+                    </span>{" "}
+                    parameters.
+                  </span>
+                ) : (
+                  "."
+                )}
+              </p>
+            </>
+          )}
         </form>
       </Form>
     </Card>

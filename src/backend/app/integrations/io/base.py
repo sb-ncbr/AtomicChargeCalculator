@@ -12,6 +12,31 @@ class IOBase(ABC):
     """Service for interaction with the file system."""
 
     @abstractmethod
+    def touch(self, path: str, content: str = "") -> str:
+        """Creates file.
+
+        Args:
+            path (str): Path to the file which will be created.
+            content (str): Optional content to be written to the newly created file.
+
+        Returns:
+            str: Path to the created directory.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def read(self, path: str) -> str:
+        """Reads all contents of a file.
+
+        Args:
+            path (str): Path to the file which will be read.
+
+        Returns:
+            str: Content of the provided file.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
     def mkdir(self, path: str) -> str:
         """Creates directory.
 
@@ -126,7 +151,9 @@ class IOBase(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def store_upload_file(self, file: UploadFile, directory: str) -> tuple[str, str]:
+    async def store_upload_file(
+        self, file: UploadFile, directory: str
+    ) -> tuple[str, str]:
         """Stores the provided file on disk.
 
         Args:

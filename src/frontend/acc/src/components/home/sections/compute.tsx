@@ -184,8 +184,7 @@ export const Compute = () => {
         settings: data.settings,
       },
       {
-        onError: () =>
-          toast.error("Unable to setup computation. Try again later."),
+        onError: (e) => setUploadError(handleApiError(e)),
         onSuccess: (compId) => {
           fileStatsContext.set(
             compId,

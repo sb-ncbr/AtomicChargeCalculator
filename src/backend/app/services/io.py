@@ -12,7 +12,7 @@ from fastapi import UploadFile, status
 
 from api.v1.exceptions import BadRequestError
 from api.v1.constants import ALLOWED_FILE_TYPES
-from models.calculation import CalculationConfigDto
+from models.calculation import CalculationConfigDto, CalculationState
 
 from integrations.io.base import IOBase
 from services.logging.base import LoggerBase
@@ -31,8 +31,12 @@ class IOService:
         self.examples_dir = Path(os.environ.get("ACC_EXAMPLES_DIR", ""))
 
         self.user_quota = int(os.environ.get("ACC_USER_STORAGE_QUOTA_BYTES", 0))
-        self.guest_file_quota = int(os.environ.get("ACC_GUEST_FILE_STORAGE_QUOTA_BYTES", 0))
-        self.guest_compute_quota = int(os.environ.get("ACC_GUEST_COMPUTE_STORAGE_QUOTA_BYTES", 0))
+        self.guest_file_quota = int(
+            os.environ.get("ACC_GUEST_FILE_STORAGE_QUOTA_BYTES", 0)
+        )
+        self.guest_compute_quota = int(
+            os.environ.get("ACC_GUEST_COMPUTE_STORAGE_QUOTA_BYTES", 0)
+        )
 
         self.max_file_size = int(os.environ.get("ACC_MAX_FILE_SIZE_BYTES", 0))
         self.max_upload_size = int(os.environ.get("ACC_MAX_UPLOAD_SIZE_BYTES", 0))
@@ -50,7 +54,9 @@ class IOService:
         try:
             self.io.mkdir(path)
         except Exception as e:
-            self.logger.error(f"Unable to create directory '{path}': {traceback.format_exc()}")
+            self.logger.error(
+                f"Unable to create directory '{path}': {traceback.format_exc()}"
+            )
             raise e
 
     def cp(self, path_from: str, path_to: str) -> str:
@@ -67,14 +73,18 @@ class IOService:
             )
             raise e
 
-    async def store_upload_file(self, file: UploadFile, directory: str) -> tuple[str, str]:
+    async def store_upload_file(
+        self, file: UploadFile, directory: str
+    ) -> tuple[str, str]:
         """Store uploaded file in the provided directory."""
         self.logger.info(f"Storing file {file.filename}.")
 
         try:
             return await self.io.store_upload_file(file, directory)
         except Exception as e:
-            self.logger.error(f"Error storing file {file.filename}: {traceback.format_exc()}")
+            self.logger.error(
+                f"Error storing file {file.filename}: {traceback.format_exc()}"
+            )
             raise e
 
     def remove_file(self, file_hash: str, user_id: str | None = None) -> None:
@@ -95,7 +105,9 @@ class IOService:
             if path:
                 self.io.rm(path)
         except Exception as e:
-            self.logger.error(f"Error removing file {file_hash}: {traceback.format_exc()}")
+            self.logger.error(
+                f"Error removing file {file_hash}: {traceback.format_exc()}"
+            )
             raise e
 
     def zip_charges(self, directory: str) -> str:
@@ -115,14 +127,18 @@ class IOService:
                 file_path = str(Path(directory) / file)
 
                 if extension in ["pqr", "txt", "mol2"]:
-                    new_name = self.parse_filename(file)[-1]  # removing hash from filename
+                    new_name = self.parse_filename(file)[
+                        -1
+                    ]  # removing hash from filename
                     self.io.cp(file_path, str(Path(archive_dir) / extension / new_name))
                 elif extension == "cif":
                     self.io.cp(file_path, str(Path(archive_dir) / extension))
 
             return self.io.zip(str(archive_dir), str(archive_dir))
         except Exception as e:
-            self.logger.error(f"Error creating archive from {directory}: {traceback.format_exc()}")
+            self.logger.error(
+                f"Error creating archive from {directory}: {traceback.format_exc()}"
+            )
             raise e
 
     def listdir(self, directory: str) -> list[str]:
@@ -178,7 +194,9 @@ class IOService:
 
         return str(path)
 
-    def get_computation_path(self, computation_id: str, user_id: str | None = None) -> str:
+    def get_computation_path(
+        self, computation_id: str, user_id: str | None = None
+    ) -> str:
         """Get path to computation directory.
 
         Args:
@@ -208,7 +226,14 @@ class IOService:
         """
 
         if user_id is not None:
-            path = self.workdir / "user" / user_id / "computations" / computation_id / "input"
+            path = (
+                self.workdir
+                / "user"
+                / user_id
+                / "computations"
+                / computation_id
+                / "input"
+            )
         else:
             path = self.workdir / "guest" / "computations" / computation_id / "input"
 
@@ -227,7 +252,14 @@ class IOService:
         """
 
         if user_id is not None:
-            path = self.workdir / "user" / user_id / "computations" / computation_id / "charges"
+            path = (
+                self.workdir
+                / "user"
+                / user_id
+                / "computations"
+                / computation_id
+                / "charges"
+            )
         else:
             path = self.workdir / "guest" / "computations" / computation_id / "charges"
 
@@ -273,6 +305,41 @@ class IOService:
                     f"Unable to create symlink from {src_path} to {dst_path}: {str(e)}"
                 )
 
+    def change_computation_state(
+        self,
+        user_id: str | None,
+        computation_id: str,
+        state: CalculationState,
+        note: str = "",
+    ) -> None:
+        """Changes the computation state by creating a marking file."""
+
+        charges_path = self.get_charges_path(computation_id, user_id)
+
+        for possible_state in CalculationState:
+            self.io.rm(str(Path(charges_path) / possible_state.value))
+
+        self.io.touch(str(Path(charges_path) / state.value), note)
+
+    def get_computation_state(
+        self, user_id: str | None, computation_id: str
+    ) -> tuple[CalculationState, str]:
+        """Returns the computation state and the content of the state file (e.g. error)."""
+
+        charges_path = self.get_charges_path(computation_id, user_id)
+        possible_values = {state.value for state in CalculationState}
+
+        dotfiles = [f for f in self.io.listdir(charges_path) if f.startswith(".")]
+
+        for dotfile in dotfiles:
+            if dotfile in possible_values:
+                note = self.io.read(str(Path(charges_path) / dotfile))
+                return CalculationState(dotfile), note
+
+        error_msg = f"No valid computation state found at {charges_path}"
+        self.logger.error(error_msg)
+        raise ValueError(error_msg)
+
     async def store_configs(
         self,
         computation_id: str,
@@ -287,7 +354,8 @@ class IOService:
             path = Path(self.get_computation_path(computation_id, user_id))
             config_path = str(path / "configs.json")
             await self.io.write_file(
-                config_path, json.dumps([config.model_dump() for config in configs], indent=4)
+                config_path,
+                json.dumps([config.model_dump() for config in configs], indent=4),
             )
         except Exception as e:
             self.logger.error(f"Unable to store configs: {traceback.format_exc()}")
@@ -333,7 +401,9 @@ class IOService:
             path = self.get_filepath(file_hash, user_id)
             return self.io.last_modified(path)
         except Exception as e:
-            self.logger.error(f"Unable to get last modification time: {traceback.format_exc()}")
+            self.logger.error(
+                f"Unable to get last modification time: {traceback.format_exc()}"
+            )
             raise e
 
     def get_file_size(self, file_hash: str, user_id: str | None) -> int | None:
@@ -380,7 +450,9 @@ class IOService:
             )
             raise ValueError("Not enough space to free.")
 
-        files = sorted(self.listdir(path), key=lambda x: self.io.last_modified(str(Path(path) / x)))
+        files = sorted(
+            self.listdir(path), key=lambda x: self.io.last_modified(str(Path(path) / x))
+        )
 
         while amount_to_free > 0 and len(files) > 0:
             file = files.pop(0)
@@ -390,7 +462,9 @@ class IOService:
                 amount_to_free -= self.io.file_size(file_path)
                 self.io.rm(file_path)
             except Exception as e:
-                self.logger.error(f"Unable to delete file {file_path}: {traceback.format_exc()}")
+                self.logger.error(
+                    f"Unable to delete file {file_path}: {traceback.format_exc()}"
+                )
                 raise e
 
     def free_guest_compute_space(self) -> None:
@@ -402,7 +476,9 @@ class IOService:
         amount_to_free = available_to_free - self.guest_compute_quota
 
         if amount_to_free <= 0:
-            self.logger.info("Guest compute space is sufficient. No need to free space.")
+            self.logger.info(
+                "Guest compute space is sufficient. No need to free space."
+            )
             return
 
         self.logger.info(f"Freeing {amount_to_free} bytes of guest compute space.")
@@ -437,7 +513,9 @@ class IOService:
         try:
             self.io.rmdir(self.get_computation_path(computation_id, user_id))
         except Exception as e:
-            self.logger(f"Error deleting computation {computation_id}: {traceback.format_exc()}")
+            self.logger(
+                f"Error deleting computation {computation_id}: {traceback.format_exc()}"
+            )
             raise e
 
     def parse_filename(self, filename: str) -> Tuple[str, str]:
@@ -457,7 +535,9 @@ class IOService:
         parts = filename.split("_", 1)
 
         if (len(parts) != 2) or (len(parts[0]) != sha256_hash_length):
-            self.logger.error(f"Invalid filename format (<file_hash>_<file_name>): {filename}")
+            self.logger.error(
+                f"Invalid filename format (<file_hash>_<file_name>): {filename}"
+            )
             raise ValueError("Invalid filename format.")
 
         file_hash, file_name = parts
@@ -475,7 +555,11 @@ class IOService:
         """
 
         storage_dir = Path(self.get_storage_path(user_id))
-        quota = self.user_quota if user_id else self.guest_file_quota + self.guest_compute_quota
+        quota = (
+            self.user_quota
+            if user_id
+            else self.guest_file_quota + self.guest_compute_quota
+        )
 
         used_space = self.io.dir_size(storage_dir)
         available_space = quota - used_space
@@ -514,7 +598,9 @@ class IOService:
                 detail=f"Invalid file type. Allowed file types are {', '.join(ALLOWED_FILE_TYPES)}",
             )
 
-    def ensure_quota_not_exceeded(self, upload_size_b: int, user_id: str | None = None) -> None:
+    def ensure_quota_not_exceeded(
+        self, upload_size_b: int, user_id: str | None = None
+    ) -> None:
         if user_id is not None:
             _, available_b, quota_b = self.get_quota(user_id)
 
@@ -541,7 +627,9 @@ class IOService:
             raise EnvironmentError("ACC_EXAMPLES_DIR environment variable is not set.")
 
         if not self.user_quota:
-            raise EnvironmentError("ACC_USER_STORAGE_QUOTA_BYTES environment variable is not set.")
+            raise EnvironmentError(
+                "ACC_USER_STORAGE_QUOTA_BYTES environment variable is not set."
+            )
 
         if not self.guest_file_quota:
             raise EnvironmentError(
@@ -554,7 +642,11 @@ class IOService:
             )
 
         if not self.max_file_size:
-            raise EnvironmentError("ACC_MAX_FILE_SIZE_BYTES environment variable is not set.")
+            raise EnvironmentError(
+                "ACC_MAX_FILE_SIZE_BYTES environment variable is not set."
+            )
 
         if not self.max_upload_size:
-            raise EnvironmentError("ACC_MAX_UPLOAD_SIZE_BYTES environment variable is not set.")
+            raise EnvironmentError(
+                "ACC_MAX_UPLOAD_SIZE_BYTES environment variable is not set."
+            )

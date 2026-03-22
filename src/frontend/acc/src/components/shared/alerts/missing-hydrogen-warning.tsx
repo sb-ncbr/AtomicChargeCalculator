@@ -11,7 +11,19 @@ export const MissingHydrogensWarning = ({
     <WarningAlert
       className={className}
       title="Missing hydrogen atoms"
-      description="At least one of the uploaded structures is missing hydrogen atoms. This may affect the calculation results."
+      description={
+        <>
+          At least one of the uploaded structures is missing hydrogen atoms. Calculated charges might not be usable.
+          See{" "}
+          <a href="/docs#protonation"
+             target="_blank"
+             rel="noopener noreferrer"
+             className="underline">
+            the Documentation
+          </a>{" "}
+          for details.
+        </>
+      }
     />
   );
 };

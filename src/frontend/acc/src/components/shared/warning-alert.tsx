@@ -1,12 +1,12 @@
 import { cn } from "@acc/lib/utils";
 import { AlertTriangleIcon } from "lucide-react";
-import { HTMLAttributes, HTMLElementType } from "react";
+import { HTMLAttributes, HTMLElementType, ReactNode } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 export type WarningAlertProps = {
   title: string;
-  description: string;
+  description: ReactNode;
 } & HTMLAttributes<HTMLElementType>;
 
 export const WarningAlert = ({

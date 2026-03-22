@@ -76,14 +76,21 @@ class ChargeFW2Service:
             raise e
 
     async def get_suitable_methods(
-        self, file_hashes: list[str], permissive_types: bool = True, user_id: str | None = None
+        self,
+        file_hashes: list[str],
+        permissive_types: bool = True,
+        user_id: str | None = None,
     ) -> SuitableMethods:
         """Get suitable methods for charge calculation based on file hashes."""
 
         try:
-            self.logger.info(f"Getting suitable methods for file hashes '{file_hashes}'")
+            self.logger.info(
+                f"Getting suitable methods for file hashes '{file_hashes}'"
+            )
 
-            return await self._find_suitable_methods(file_hashes, permissive_types, user_id)
+            return await self._find_suitable_methods(
+                file_hashes, permissive_types, user_id
+            )
         except Exception as e:
             self.logger.error(
                 f"Error getting suitable methods for file hashes '{file_hashes}': {e}"
@@ -91,21 +98,26 @@ class ChargeFW2Service:
             raise e
 
     async def get_computation_suitable_methods(
-        self, computation_id: str, user_id: str | None
+        self, computation_id: str, user_id: str | None, settings: AdvancedSettingsDto
     ) -> SuitableMethods:
         """Get suitable methods for charge calculation based on files in the provided directory."""
 
         try:
-            self.logger.info(f"Getting suitable methods for computation '{computation_id}'")
+            self.logger.info(
+                f"Getting suitable methods for computation '{computation_id}'"
+            )
 
-            calculation_set = self.calculation_storage.get_calculation_set(computation_id)
+            calculation_set = self.calculation_storage.get_calculation_set(
+                computation_id
+            )
 
-            settings = AdvancedSettingsDto()
             if calculation_set is not None:
                 settings = calculation_set.advanced_settings
 
             workdir = self.io.get_inputs_path(computation_id, user_id)
-            file_hashes = [self.io.parse_filename(file)[0] for file in self.io.listdir(workdir)]
+            file_hashes = [
+                self.io.parse_filename(file)[0] for file in self.io.listdir(workdir)
+            ]
 
             return await self._find_suitable_methods(
                 file_hashes, settings.permissive_types, user_id
@@ -127,15 +139,22 @@ class ChargeFW2Service:
         dir_contents = self.io.listdir(workdir)
         for file_hash in file_hashes:
             file = next(
-                (f for f in dir_contents if self.io.parse_filename(f)[0] == file_hash), None
+                (f for f in dir_contents if self.io.parse_filename(f)[0] == file_hash),
+                None,
             )
             if file is None:
-                self.logger.warn(f"File with hash {file_hash} not found in {workdir}, skipping.")
+                self.logger.warn(
+                    f"File with hash {file_hash} not found in {workdir}, skipping."
+                )
                 continue
 
             input_file = os.path.join(workdir, file)
-            molecules = await self.read_molecules(input_file, True, False, permissive_types)
-            methods: list[tuple[Method, list[Parameters]]] = await self._run_in_executor(
+            molecules = await self.read_molecules(
+                input_file, True, False, permissive_types
+            )
+            methods: list[
+                tuple[Method, list[Parameters]]
+            ] = await self._run_in_executor(
                 self.chargefw2.get_suitable_methods, molecules
             )
             for method, parameters in methods:
@@ -146,7 +165,9 @@ class ChargeFW2Service:
                         suitable_methods[(method, p)] += 1
 
         all_valid = [
-            pair for pair in suitable_methods if suitable_methods[pair] == len(file_hashes)
+            pair
+            for pair in suitable_methods
+            if suitable_methods[pair] == len(file_hashes)
         ]
 
         # Remove duplicates from methods
@@ -177,7 +198,9 @@ class ChargeFW2Service:
 
             return parameters
         except Exception as e:
-            self.logger.error(f"Error getting available parameters for method {method}: {e}")
+            self.logger.error(
+                f"Error getting available parameters for method {method}: {e}"
+            )
             raise e
 
     async def get_best_parameters(
@@ -209,7 +232,11 @@ class ChargeFW2Service:
         try:
             self.logger.info(f"Loading molecules from file {file_path}.")
             molecules = await self._run_in_executor(
-                self.chargefw2.molecules, file_path, read_hetatm, ignore_water, permissive_types
+                self.chargefw2.molecules,
+                file_path,
+                read_hetatm,
+                ignore_water,
+                permissive_types,
             )
 
             return molecules
@@ -238,7 +265,9 @@ class ChargeFW2Service:
 
         calculations = await asyncio.gather(
             *[
-                self._calculate_charges(user_id, computation_id, settings, config, file_hashes)
+                self._calculate_charges(
+                    user_id, computation_id, settings, config, file_hashes
+                )
                 for config, file_hashes in data.items()
             ],
             return_exceptions=False,
@@ -278,7 +307,9 @@ class ChargeFW2Service:
             )
 
             if file_name is None:
-                self.logger.warn(f"File with hash {file_hash} not found in {workdir}, skipping.")
+                self.logger.warn(
+                    f"File with hash {file_hash} not found in {workdir}, skipping."
+                )
                 return
 
             async with self.semaphore:
@@ -344,7 +375,9 @@ class ChargeFW2Service:
 
         for result in results:
             for calculation in result.calculations:
-                file_path = str(Path(workdir) / f"{calculation.file_hash}_{calculation.file}")
+                file_path = str(
+                    Path(workdir) / f"{calculation.file_hash}_{calculation.file}"
+                )
                 molecules = await self.read_molecules(
                     file_path,
                     settings.read_hetatm,
@@ -372,7 +405,9 @@ class ChargeFW2Service:
 
             return MoleculeSetStats(info.to_dict())
         except Exception as e:
-            self.logger.error(f"Error getting info for file {path}: {traceback.format_exc()}")
+            self.logger.error(
+                f"Error getting info for file {path}: {traceback.format_exc()}"
+            )
             raise e
 
     def get_calculation_molecules(self, path: str) -> list[str]:
@@ -391,9 +426,13 @@ class ChargeFW2Service:
             raise FileNotFoundError()
 
         molecule_files = [
-            file for file in self.io.listdir(path) if file.endswith(CHARGES_OUTPUT_EXTENSION)
+            file
+            for file in self.io.listdir(path)
+            if file.endswith(CHARGES_OUTPUT_EXTENSION)
         ]
-        molecules = [file.replace(CHARGES_OUTPUT_EXTENSION, "") for file in molecule_files]
+        molecules = [
+            file.replace(CHARGES_OUTPUT_EXTENSION, "") for file in molecule_files
+        ]
 
         return molecules
 

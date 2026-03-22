@@ -446,7 +446,7 @@ async def calculate_charges(
         if not configs:
             # use most suitable method and parameters if none provided
             suitable = await chargefw2.get_computation_suitable_methods(
-                computation_id, user_id
+                computation_id, user_id, settings
             )
 
             if len(suitable.methods) == 0:

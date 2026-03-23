@@ -6,7 +6,8 @@ Atomic Charge Calculator III (ACC III) is a web application that provides a user
 
 The main page offers a possibility to upload your own structures (in one of the supported formats: SDF, Mol2, PDB, and mmCIF).
 
-Clicking on the **Compute charges** button will automatically select the most appropriate method, execute the computation and redirect to the Results page. **Setup computation** can be used for manually selecting the method and parameters. Additionally, there are three advanced settings to choose from:
+Clicking on the **Compute charges** button will automatically select the most appropriate method, execute the computation, and redirect to the Results page.
+**Setup computation** can be used for manually selecting the method and parameters. Additionally, there are three advanced settings to choose from:
 - `Read HETATM` - Read HETATM records from PDB/mmCIF files (enabled by default).
 - `Ignore Water` - Discard water molecules from PDB/mmCIF files (disabled by default).
 - `Permissive Types` - Use similar parameters for similar atom/bond types if no exact match is found (enabled by default).
@@ -15,14 +16,12 @@ Clicking on the **Compute charges** button will automatically select the most ap
 
 ## Input files notes
 The input file size is limited to 50 MB.
-- **PDB, mmCIF**: When the file contains multiple models, only the first one is used for computation. All
-atoms are considered.
+- **PDB, mmCIF**: When the file contains multiple models, only the first one is used for computation. Alternative locations are not considered.
 - **SDF**: Both MOL V2000 and V3000 are supported.
 
 ## How to set input charge values
 Formal charges, if present, are read from an input file as well. Their sum is used as a total molecular
-charge, which is used by some methods (ABEEM, EEM, EQeq, Eqeq+C, QEq, SFKEEM, SMP/QEq,
-TSEF).
+charge, which is used by some methods (ABEEM, EEM, EQeq, Eqeq+C, QEq, SFKEEM, SMP/QEq, TSEF).
 
 The specification of input formal charges differs among supported file formats. ACC II reads the following:
 
@@ -30,8 +29,7 @@ The specification of input formal charges differs among supported file formats. 
 
 - **PDB**: Columns 79-80 of the [`ATOM`](https://www.wwpdb.org/documentation/file-format-content/format33/sect9.html#ATOM) record.
 
-- **mmCIF**: [`_atom_site.pdbx_formal_charge`](https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_atom_site.pdbx_formal_charge.html) record; or [`_chem_comp.pdbx_formal_charge`](https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_chem_comp.pdbx_formal_charge.html) record in
-case of chemical components.
+- **mmCIF**: [`_atom_site.pdbx_formal_charge`](https://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Items/_atom_site.pdbx_formal_charge.html) record
 
 - **Mol2**: Not supported.
 
@@ -77,20 +75,41 @@ ACC III features a fast Molstar viewer to visualise calculated charges. There ar
 <br>
 
 The default is determined by the structure itself.
-Note that to visualise mmCIF files, they must contain `_atom_sites category` (chemical components won’t work).
+Note that to visualise mmCIF files, they must contain `_atom_site` category
 
 ## Colouring options
 Atoms are coloured by charge by default – red for negative charges and blue for positive ones.
 
-In cartoon mode, the colour of individual residues is determined according to the sum of charges of all the atoms comprising them. In surface mode, the point on the surface of the molecule is coloured according to the nearest atom. Alternatively, colouring by charges can be disabled – colours are selected based on the elements.
+In cartoon mode, the colour of individual residues is determined according to the sum of the values of charges of all the atoms comprising them. In surface mode, the point on the surface of the molecule is coloured according to the nearest atom. Alternatively, colouring by charges can be disabled – colours are selected based on the elements.
 
 ## Downloading data
 The charges are available in four formats – plain text, Mol2, PQR, and mmCIF. Plain text and mmCIF are present for all the inputs, PQR when the input contains structures with chain specification (most likely protein) and Mol2 otherwise (small molecules).
 
+
+### ACC III plain-text output format
+The plain-text export contains one block per molecule. Each block starts with the molecule name on a separate line, followed by a single line with whitespace-separated partial atomic charges written in the same atom order as in the processed input structure. When a file contains multiple molecules, the blocks are written consecutively.
+
+A simplified example looks as follows:
+
+```text
+MOLECULE_1
+-0.12345 0.23456 -0.11111
+MOLECULE_2
+0.33333 -0.22222 0.11111 0.44444
+```
+
+### mmCIF output format
+
 ACC III stores charges in custom mmCIF categories. For a complete reference, see the [extension dictionary](https://github.com/sb-ncbr/charges-schema).
 
+### PQR output format
+The second-to-last column of ATOM and HETATM records in PQR files is used to store partial atomic charges, see the [PQR format specification](https://apbs.readthedocs.io/en/latest/formats/pqr.html).
+
+### Mol2 output format
+The ninth column of ATOM records in Mol2 files is used to store partial atomic charges, see the [Mol2 format specification](https://aideepmed.com/DockRMSD/mol2.pdf).
+
 # File management
-After logging in, the user can filter, search, delete, and download uploaded files, or upload new ones until the quota is reached.
+After logging in, the user can filter, search, delete, and download uploaded files or upload new ones until the quota is reached.
 ![file-management](https://github.com/user-attachments/assets/47b3ea44-0262-4b59-84d0-8d5c65610d3d)
 
 Additionally, the user can select files and trigger a computation (similar to the process on the [Main page](#main-page)) through a dialogue.
@@ -102,11 +121,47 @@ The calculation management page allows you to view, download, and delete previou
 
 # API
 
-For programmatic access, the ACC III API can be used. Below, we demonstrate the typical workflow for ACC III. See the [complete interactive documentation](https://acc.biodata.ceitec.cz/api/docs) containing a thorough description.
+For programmatic access, the ACC III API can be used. Below, we demonstrate a typical ACC III workflow. See the [complete interactive documentation](https://acc.biodata.ceitec.cz/api/docs) for the full OpenAPI description and all request/response schemas.
 
-Certain operations (e.g., calculating partial atomic charges) require users to upload the necessary input files. If the upload is successful, users receive hashes of the file’s contents. These hashes can be referenced in subsequent operations. Additionally, successful charge calculations have a unique identifier (UUID), which is used to download an archive with results.
+Successful file uploads return file hashes that are then reused in later requests. Successful calculations have their own computation identifier (UUID), which can be used to poll the calculation state or download the final archive.
 
-The following example uses `curl` to illustrate example HTTP requests for the abovementioned operations. Here, we upload multiple files simultaneously by specifying the -F option (form value) for each.
+## 1. List available methods
+Use this endpoint to obtain all charge-calculation methods currently exposed by ACC III. Each method entry contains the public method name, its internal identifier, full name, publication reference, method type (`2D`, `3D`, or `other`), and information about whether the method requires a parameter set.
+
+```bash
+curl -X GET 'https://acc.biodata.ceitec.cz/api/v1/charges/methods/available' \
+  -H 'accept: application/json'
+```
+
+Response (truncated):
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "name": "SQE+qp",
+      "internalName": "sqeqp",
+      "fullName": "Split-charge equilibration with parametrized initial charges",
+      "publication": "10.1186/s13321-021-00528-w",
+      "type": "3D",
+      "hasParameters": true
+    },
+    {
+      "name": "EEM",
+      "internalName": "eem",
+      "fullName": "Electronegativity Equalization Method",
+      "publication": "10.1021/ja00275a013",
+      "type": "3D",
+      "hasParameters": true
+    }
+  ]
+}
+```
+
+If a method uses parameters, they can be queried separately using `GET /api/v1/charges/parameters/{method_name}/available`. The `{method_name}` corresponds `internalName` returned in the previous request.
+
+## 2. Upload input files
+The following example uses `curl` to upload multiple files simultaneously by specifying the `-F` option once for each file.
 
 ```bash
 curl -X POST 'https://acc.biodata.ceitec.cz/api/v1/files/upload' \
@@ -114,8 +169,10 @@ curl -X POST 'https://acc.biodata.ceitec.cz/api/v1/files/upload' \
   -H 'Content-Type: multipart/form-data' \
   -F 'files=@molecule1.sdf' \
   -F 'files=@molecule2.pdb'
+```
 
-# response
+Example response:
+```json
 {
   "success": true,
   "data": [
@@ -130,8 +187,48 @@ curl -X POST 'https://acc.biodata.ceitec.cz/api/v1/files/upload' \
   ]
 }
 ```
+## 3. Get suitable methods for uploaded files
+Once the files are uploaded, ACC III can filter the method catalogue and return only methods that are suitable for all provided structures. Suitability is evaluated from the uploaded content, including the `permissiveTypes` setting. The response contains the list of suitable methods and, for each method, the parameter sets that can be used with the supplied files.
 
-The calculation of partial atomic charges usually follows. Users need to provide configurations, file hashes and settings parameters.
+```bash
+curl -X POST 'https://acc.biodata.ceitec.cz/api/v1/charges/methods/suitable' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "fileHashes": [
+    "<fileHash1>",
+    "<fileHash2>"
+  ],
+  "permissiveTypes": true
+}'
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "methods": [
+      {
+        "name": "VEEM",
+        "internalName": "veem",
+        "fullName": "Valence Extended Electronegativity Method",
+        "publication": "...",
+        "type": "3D",
+        "hasParameters": false
+      }
+    ],
+    "parameters": {
+      "veem": []
+    }
+  }
+}
+```
+
+Note that, in web interface, ACC III automatically uses the first suitable method and the first suitable parameter set (if the method has parameters).
+
+## 4. Calculate charges
+The calculation of partial atomic charges usually follows. Users provide calculation configurations, file hashes, and optional advanced settings. If `configs` is empty, ACC III automatically selects the most suitable method and parameters.
 
 ```bash
 curl -X POST 'https://acc.biodata.ceitec.cz/api/v1/charges/calculate' \
@@ -154,8 +251,10 @@ curl -X POST 'https://acc.biodata.ceitec.cz/api/v1/charges/calculate' \
     "permissiveTypes": true
   }
 }'
+```
 
-# response
+Example response:
+```json
 {
   "success": true,
   "data": "<comp_id>"

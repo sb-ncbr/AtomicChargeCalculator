@@ -95,13 +95,13 @@ async def upload(
         for [path, file_hash] in stored_files:
             try:
                 info = await chargefw2.info(path)
-            except RuntimeError:
+            except RuntimeError as e:
                 # Remove files that were uploaded if an error occurs
                 clear_stored_files([path for [path, _] in stored_files])
                 _, filename = io.parse_filename(pathlib.Path(path).name)
                 raise BadRequestError(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Unable to load molecules from file '{filename}'.",
+                    detail=str(e),
                 )
 
             storage_service.store_file_info(file_hash, info)

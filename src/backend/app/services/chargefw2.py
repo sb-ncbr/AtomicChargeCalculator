@@ -98,7 +98,10 @@ class ChargeFW2Service:
             raise e
 
     async def get_computation_suitable_methods(
-        self, computation_id: str, user_id: str | None, settings: AdvancedSettingsDto
+        self,
+        computation_id: str,
+        user_id: str | None,
+        settings: AdvancedSettingsDto | None = None,
     ) -> SuitableMethods:
         """Get suitable methods for charge calculation based on files in the provided directory."""
 
@@ -113,6 +116,9 @@ class ChargeFW2Service:
 
             if calculation_set is not None:
                 settings = calculation_set.advanced_settings
+
+            if settings is None:
+                settings = AdvancedSettingsDto()
 
             workdir = self.io.get_inputs_path(computation_id, user_id)
             file_hashes = [

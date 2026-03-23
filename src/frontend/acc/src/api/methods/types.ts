@@ -21,3 +21,8 @@ export type SuitableMethods = {
   methods: Method[];
   parameters: Record<Method["internalName"], Parameters[]>;
 };
+
+export type MostSuitableMethod = {
+  method: Method;
+  parameters?: Parameters;
+};

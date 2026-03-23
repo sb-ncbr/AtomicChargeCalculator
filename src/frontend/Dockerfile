@@ -1,4 +1,4 @@
-FROM node:21.7.3 AS builder
+FROM node:25.8 AS builder
 WORKDIR /app
 
 RUN npm install -g pnpm
@@ -15,7 +15,7 @@ RUN echo "VITE_BASE_API_URL=${VITE_BASE_API_URL}" > .env.production
 
 RUN pnpm build
 
-FROM node:21.7.3-slim
+FROM node:25.8-slim
 WORKDIR /app
 
 COPY --from=builder /app/dist ./dist

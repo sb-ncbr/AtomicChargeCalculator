@@ -5,6 +5,8 @@ import { Method, SuitableMethods } from "./types";
 // we don't want to show 'dummy' method on frontend
 const DUMMY_KEY = "dummy";
 
+const FALLBACK_ERROR_MESSAGE = "Something went wrong.";
+
 export const getSuitableMethods = async (
   computationId: string
 ): Promise<SuitableMethods> => {
@@ -13,7 +15,7 @@ export const getSuitableMethods = async (
   );
 
   if (!response.data.success) {
-    throw new Error(response.data.message ?? "Something went wrong.");
+    throw new Error(response.data.message ?? FALLBACK_ERROR_MESSAGE);
   }
 
   const data = response.data.data;
@@ -26,13 +28,32 @@ export const getSuitableMethods = async (
   return data;
 };
 
+export const getSuitableMethodsForFiles = async (
+  fileHashes: string[],
+  permissiveTypes: boolean
+): Promise<SuitableMethods> => {
+  const response = await api.post<ApiResponse<SuitableMethods>>(
+    `/charges/methods/suitable`,
+    {
+      fileHashes,
+      permissiveTypes,
+    }
+  );
+
+  if (!response.data.success) {
+    throw new Error(response.data.message ?? FALLBACK_ERROR_MESSAGE);
+  }
+
+  return response.data.data;
+};
+
 export const getAvailableMethods = async (): Promise<Method[]> => {
   const response = await api.get<ApiResponse<Method[]>>(
     `/charges/methods/available`
   );
 
   if (!response.data.success) {
-    throw new Error(response.data.message ?? "Something went wrong.");
+    throw new Error(response.data.message ?? FALLBACK_ERROR_MESSAGE);
   }
 
   const data = response.data.data;

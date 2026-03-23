@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 from typing import Dict
 import uuid
 
@@ -14,6 +15,12 @@ from models.molecule_info import MoleculeSetStats
 from models.setup import AdvancedSettingsDto
 
 Charges = Dict[str, list[float]]
+
+
+class CalculationState(Enum):
+    CALCULATING = ".calculating"
+    FAILED = ".failed"
+    COMPLETED = ".completed"
 
 
 @dataclass
@@ -35,7 +42,9 @@ class CalculationConfigDto(BaseModel):
     method: str | None = None
     parameters: str | None = None
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
+    model_config = ConfigDict(
+        alias_generator=to_camel, populate_by_name=True, from_attributes=True
+    )
     __hash__ = object.__hash__
 
 
@@ -47,7 +56,9 @@ class CalculationDto(BaseModel):
     charges: Charges
     config: CalculationConfigDto
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
+    model_config = ConfigDict(
+        alias_generator=to_camel, populate_by_name=True, from_attributes=True
+    )
 
 
 class CalculationPreviewDto(BaseModel):
@@ -55,7 +66,9 @@ class CalculationPreviewDto(BaseModel):
 
     file: str
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
+    model_config = ConfigDict(
+        alias_generator=to_camel, populate_by_name=True, from_attributes=True
+    )
 
 
 class CalculationSetDto(BaseModel):
@@ -66,7 +79,9 @@ class CalculationSetDto(BaseModel):
     configs: list[CalculationConfigDto]
     settings: AdvancedSettingsDto
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
+    model_config = ConfigDict(
+        alias_generator=to_camel, populate_by_name=True, from_attributes=True
+    )
 
 
 class CalculationSetPreviewDto(BaseModel):
@@ -78,7 +93,9 @@ class CalculationSetPreviewDto(BaseModel):
     settings: AdvancedSettingsDto
     created_at: datetime
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
+    model_config = ConfigDict(
+        alias_generator=to_camel, populate_by_name=True, from_attributes=True
+    )
 
 
 class CalculationResultDto(BaseModel):
@@ -87,4 +104,6 @@ class CalculationResultDto(BaseModel):
     config: CalculationConfigDto
     calculations: list[CalculationDto]
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
+    model_config = ConfigDict(
+        alias_generator=to_camel, populate_by_name=True, from_attributes=True
+    )

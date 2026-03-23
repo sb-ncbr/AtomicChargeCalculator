@@ -21,7 +21,28 @@ export const Documentation = () => {
       .filter(Boolean);
 
     setContents([...new Set(headings)]);
-  }, [articleRef]);
+  }, []);
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) {
+      return;
+    }
+
+    const id = decodeURIComponent(hash.slice(1));
+
+    const scrollToHash = () => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ block: 'start' });
+      }
+    };
+
+    scrollToHash();
+    const timeout = setTimeout(scrollToHash, 100);
+
+    return () => clearTimeout(timeout);
+  }, [contents]);
 
   return (
     <main className="mx-auto w-full selection:text-white selection:bg-primary">

@@ -49,7 +49,7 @@ export const useComputationMutations = () => {
       settings,
       configs,
     }: ComputationMutationData) =>
-      await compute(fileHashes, configs, settings, computationId),
+      await compute(fileHashes, configs, computationId ?? undefined, settings),
   });
 
   const loadMmcifMutation = useMutation({

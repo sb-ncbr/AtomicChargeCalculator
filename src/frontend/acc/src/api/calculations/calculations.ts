@@ -1,6 +1,6 @@
 import { api } from "../base";
 import { ApiResponse, CalculationsFilters, PagedData } from "../types";
-import { CalculationPreview } from "./types";
+import { CalculationPreview, MoleculeSetStats } from "./types";
 
 export const getCalculations = async (
   filters: CalculationsFilters
@@ -26,6 +26,19 @@ export const getCalculations = async (
 
 export const deleteCalculation = async (computationId: string) => {
   const response = await api.delete(`/charges/${computationId}`);
+
+  if (!response.data.success) {
+    throw Error(response.data.message);
+  }
+
+  return response.data.data;
+};
+
+export const getStats = async (fileHash: string): Promise<MoleculeSetStats> => {
+  const response = await api.post<ApiResponse<MoleculeSetStats>>(
+    `/charges/stats`,
+    { fileHash }
+  );
 
   if (!response.data.success) {
     throw Error(response.data.message);

@@ -11,7 +11,7 @@ import { toast } from "sonner";
 
 export const useCalculationsQuery = (filters: CalculationsFilters) => {
   return useQuery({
-    queryKey: ["calculations", "list"],
+    queryKey: ["calculations", "list", filters],
     queryFn: async () => {
       try {
         return await getCalculations(filters);

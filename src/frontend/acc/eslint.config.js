@@ -11,14 +11,10 @@ import reactCompiler from "eslint-plugin-react-compiler";
 import tseslint from "typescript-eslint";
 import tsParser from "@typescript-eslint/parser";
 import path from "path";
-import { FlatCompat } from "@eslint/eslintrc";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
 
 export default tseslint.config(
   {
@@ -35,7 +31,14 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...pluginQuery.configs["flat/recommended"],
-  ...compat.extends("plugin:react/recommended"),
+  {
+    ...react.configs.flat.recommended,
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
+  },
 
   {
     files: ["**/*.{ts,tsx}"],
@@ -94,11 +97,6 @@ export default tseslint.config(
       "perfectionist/sort-named-imports": ["error", {}],
 
       "react-compiler/react-compiler": "warn",
-    },
-    settings: {
-      react: {
-        version: "detect",
-      },
     },
   }
 );

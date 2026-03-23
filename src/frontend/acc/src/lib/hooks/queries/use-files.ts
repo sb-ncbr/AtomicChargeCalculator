@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 export const useFilesQuery = (filters: FilesFilters) => {
   return useQuery({
-    queryKey: ["files", "list"],
+    queryKey: ["files", "list", filters],
     queryFn: async () => {
       try {
         return await getFiles(filters);

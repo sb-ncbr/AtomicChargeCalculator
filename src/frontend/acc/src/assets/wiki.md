@@ -257,7 +257,38 @@ Example response:
 ```json
 {
   "success": true,
-  "data": "<comp_id>"
+  "data": {
+    "computationId": "<comp_id>",
+    "results": [
+      {
+        "config": {
+          "method": "sqeqp",
+          "parameters": "SQEqp_10_Schindler2021_CCD_gen"
+        },
+        "calculations": [
+          {
+            "file": "molecule.sdf",
+            "fileHash": ",<fileHash1>",
+            "charges": {
+              "TEST": [
+                -0.16261638412926122,
+                0.12703306647254375,
+                0.5926350973399765,
+                0.6143192179940414,
+                0.03655979848866364,
+                0.03655979848866364,
+                0.03655979848866364
+              ]
+            },
+            "config": {
+              "method": "sqeqp",
+              "parameters": "SQEqp_10_Schindler2021_CCD_gen"
+            }
+          }
+        ]
+      }
+    ]
+  }
 }
 ```
 

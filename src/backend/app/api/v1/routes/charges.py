@@ -650,7 +650,7 @@ async def get_mmcif(
 @inject
 async def get_example_mmcif(
     example_id: Annotated[
-        str, Path(description="ID of the example.", example="phenols")
+        str, Path(description="ID of the example.", examples="phenols")
     ],
     molecule: Annotated[str | None, Query(description="Molecule name.")] = None,
     io: IOService = Depends(Provide[Container.io_service]),
@@ -700,7 +700,7 @@ async def get_molecules(
 @inject
 async def get_example_molecules(
     example_id: Annotated[
-        str, Path(description="Id of the example.", example="phenols")
+        str, Path(description="Id of the example.", examples="phenols")
     ],
     io: IOService = Depends(Provide[Container.io_service]),
     chargefw2: ChargeFW2Service = Depends(Provide[Container.chargefw2_service]),

@@ -264,7 +264,7 @@ async def get_files(
 @files_router.get("/download/examples/{example_id}", include_in_schema=False)
 @inject
 async def download_example(
-    example_id: Annotated[str, Path(description="ID of the example.", example="phenols")],
+    example_id: Annotated[str, Path(description="ID of the example.", examples="phenols")],
     io: IOService = Depends(Provide[Container.io_service]),
 ) -> FileResponse:
     try:

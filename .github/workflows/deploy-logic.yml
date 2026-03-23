@@ -82,9 +82,13 @@ jobs:
             echo "Changed directory to $(pwd)"
 
             echo "Pulling latest changes ..."
-            sudo git checkout $BRANCH_NAME
-            sudo git fetch origin
-            sudo git reset --hard origin/$BRANCH_NAME
+            sudo git fetch --prune origin
+            if ! sudo git show-ref --verify --quiet "refs/remotes/origin/$BRANCH_NAME"; then
+                echo "Remote branch origin/$BRANCH_NAME was not found."
+                exit 1
+            fi
+            sudo git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
+            sudo git reset --hard "origin/$BRANCH_NAME"
             sudo git submodule update --recursive
 
             cd $DEPLOY_DIR

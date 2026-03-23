@@ -1,19 +1,19 @@
 # Deployment
-How to use the *Deploy to Production* GitHub Action to deploy new ACC II version is described [here](../../docs/deployment/README.md).
+How to use the *Deploy to Production* GitHub Action to deploy a new ACC III version is described [here](../../docs/deployment/README.md).
 
 ## Nginx
 
-`nginx.conf` provides a configuration that can be used to deploy ACC II using nginx. Reusable declarations are located in `./snippets` to avoid unnecessary duplicity.
+`nginx.conf` provides a configuration that can be used to deploy ACC III using nginx. Reusable declarations are located in `./snippets` to avoid unnecessary duplicity.
 
 ## SSL Configuration
-Simple way is to use certbot (Let's Encrypt):
+A simple way is to use certbot (Let's Encrypt):
 
 ```bash 
 $ certbot --nginx -d <url>
 ```
 
 ## Setup Using Docker
-A quicker way of running ACC II locally is to use `docker compose`. This will start up 3 containers for API, web and database.
+A quicker way of running ACC III locally is to use `docker compose`. This will start up 3 containers for API, web and database.
 
 *Note:* If you are using Windows, you might encounter the following error during `api` container startup:
 ```
@@ -23,7 +23,7 @@ exec /acc/entrypoint.sh: no such file or directory
 This is because of line endings and can be fixed by running `dos2unix` on the `src/backend/entrypoint.sh` file.
 
 ### Prepare base ChargeFW2 image
-We firstly need to build the base ChargeFW2 image which is used by the api container:
+We first need to build the base ChargeFW2 image which is used by the api container:
 ```bash
 $ cd ../../
 $ docker build -t chargefw2-base:local -f ./src/backend/Dockerfile.chargefw2 .

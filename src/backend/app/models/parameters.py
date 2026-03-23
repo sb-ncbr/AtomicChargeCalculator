@@ -9,3 +9,4 @@ class Parameters:
     internal_name: str
     publication: str
     method: str
+    notes: str

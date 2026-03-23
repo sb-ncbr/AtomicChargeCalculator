@@ -1,3 +1,4 @@
+import { cn } from "@acc/lib/utils";
 import MolstarPartialCharges from "@acc/lib/viewer/viewer";
 import { HTMLAttributes, useEffect } from "react";
 
@@ -14,6 +15,7 @@ export type MolstarWrapperProps = {
 export const MolstarWrapper = ({
   molstar,
   setMolstar,
+  className,
 }: MolstarWrapperProps) => {
   const setup = async () => {
     const molstar = await MolstarPartialCharges.initialize();
@@ -26,7 +28,7 @@ export const MolstarWrapper = ({
   }, []);
 
   return (
-    <div className={"relative w-[90%] mx-auto h-[700px]"}>
+    <div className={cn("relative w-[90%] mx-auto h-[700px]", className)}>
       <Busy isBusy={!molstar} size={BusySize.Big} />
       {molstar && <MolstarViewer molstar={molstar} />}
     </div>

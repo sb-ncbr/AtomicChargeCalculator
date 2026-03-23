@@ -24,7 +24,7 @@ export const About = () => {
         >
           Short introduction
         </a>{" "}
-        covers the basic usage of ACC II. All methods and parameters are also
+        covers the basic usage of ACC III. All methods and parameters are also
         available in a{" "}
         <a
           href="https://github.com/sb-ncbr/ChargeFW2"

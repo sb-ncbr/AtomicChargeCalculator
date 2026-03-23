@@ -1,10 +1,19 @@
 """Charge calculation routes."""
 
+import logging
 import uuid
 
 
 from typing import Annotated, Literal
-from fastapi import Depends, HTTPException, Path, Query, Request, status
+from fastapi import (
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Path,
+    Query,
+    Request,
+    status,
+)
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
 from dependency_injector.wiring import inject, Provide
@@ -16,6 +25,7 @@ from models.calculation import (
     CalculationConfigDto,
     CalculationResultDto,
     CalculationSetPreviewDto,
+    CalculationState,
 )
 from models.method import Method
 from models.molecule_info import MoleculeSetStats
@@ -43,6 +53,7 @@ from services.chargefw2 import ChargeFW2Service
 
 charges_router = APIRouter(prefix="/charges", tags=["charges"])
 
+
 # --- Public API handlers ---
 
 
@@ -69,6 +80,7 @@ async def suitable_methods(
     request: Request,
     data: SuitableMethodsRequest,
     chargefw2: ChargeFW2Service = Depends(Provide[Container.chargefw2_service]),
+    io_service: IOService = Depends(Provide[Container.io_service]),
 ) -> Response[SuitableMethods]:
     """
     Returns suitable methods for the provided computation.
@@ -79,14 +91,16 @@ async def suitable_methods(
     user_id = str(request.state.user.id) if request.state.user is not None else None
 
     try:
+        io_service.ensure_file_hashes_exist(data.file_hashes, user_id)
         suitable = await chargefw2.get_suitable_methods(
             data.file_hashes, data.permissive_types, user_id
         )
         return Response(data=suitable)
     except Exception as e:
         raise BadRequestError(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Error getting suitable methods."
-        ) from e
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f'Error getting suitable methods. {str(e)}',
+        )
 
 
 @charges_router.get(
@@ -96,7 +110,9 @@ async def suitable_methods(
             "description": "Method not found.",
             "model": ResponseError,
             "content": {
-                "application/json": {"example": {"success": False, "message": "Method not found."}}
+                "application/json": {
+                    "example": {"success": False, "message": "Method not found."}
+                }
             },
         },
         400: {
@@ -104,7 +120,10 @@ async def suitable_methods(
             "model": ResponseError,
             "content": {
                 "application/json": {
-                    "example": {"success": False, "message": "Error getting available parameters."}
+                    "example": {
+                        "success": False,
+                        "message": "Error getting available parameters.",
+                    }
                 }
             },
         },
@@ -149,7 +168,9 @@ async def available_parameters(
             "description": "Method not found.",
             "model": ResponseError,
             "content": {
-                "application/json": {"example": {"success": False, "message": "Method not found."}}
+                "application/json": {
+                    "example": {"success": False, "message": "Method not found."}
+                }
             },
         },
         400: {
@@ -157,7 +178,10 @@ async def available_parameters(
             "model": ResponseError,
             "content": {
                 "application/json": {
-                    "example": {"success": False, "message": "Error getting best parameters."}
+                    "example": {
+                        "success": False,
+                        "message": "Error getting best parameters.",
+                    }
                 }
             },
         },
@@ -211,7 +235,9 @@ async def best_parameters(
             "description": "File not found.",
             "model": ResponseError,
             "content": {
-                "application/json": {"example": {"success": False, "message": "File not found."}}
+                "application/json": {
+                    "example": {"success": False, "message": "File not found."}
+                }
             },
         },
         400: {
@@ -219,7 +245,10 @@ async def best_parameters(
             "model": ResponseError,
             "content": {
                 "application/json": {
-                    "example": {"success": False, "message": "Error getting file information."}
+                    "example": {
+                        "success": False,
+                        "message": "Error getting file information.",
+                    }
                 }
             },
         },
@@ -254,7 +283,8 @@ async def info(
         raise NotFoundError(detail="File not found.") from e
     except Exception as e:
         raise BadRequestError(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Error getting file information."
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Error getting file information.",
         ) from e
 
 
@@ -308,7 +338,9 @@ async def info(
             "description": "No files provided.",
             "model": ResponseError,
             "content": {
-                "application/json": {"example": {"success": False, "message": "No files provided."}}
+                "application/json": {
+                    "example": {"success": False, "message": "No files provided."}
+                }
             },
         },
     },
@@ -317,11 +349,14 @@ async def info(
 async def calculate_charges(
     request: Request,
     data: CalculateChargesRequest,
+    background_tasks: BackgroundTasks,
     response_format: Annotated[
         Literal["charges", "none"], Query(description="Output format.")
     ] = "charges",
     chargefw2: ChargeFW2Service = Depends(Provide[Container.chargefw2_service]),
-    storage_service: CalculationStorageService = Depends(Provide[Container.storage_service]),
+    storage_service: CalculationStorageService = Depends(
+        Provide[Container.storage_service]
+    ),
     mmcif_service: MmCIFService = Depends(Provide[Container.mmcif_service]),
     io_service: IOService = Depends(Provide[Container.io_service]),
 ):
@@ -332,6 +367,9 @@ async def calculate_charges(
 
         configs: List of combinations of suitable methods and parameters.
         fileHashes: List of file hashes to calculate charges for.
+        response_format:
+            Charges: returns a list of charges once it is finished.
+            None: immediately returns computation id - you can then use /<computation_id>/status endpoint to check the state and download files once it's completed.
 
     settings:
 
@@ -357,38 +395,46 @@ async def calculate_charges(
     calculation_set = storage_service.get_calculation_set(computation_id)
 
     if not data.file_hashes and calculation_set is None:
-        # if no file hashes provided and computation has not been set up
+        # if no file hashes were provided and computation has not been set up
         raise BadRequestError(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No file hashes provided.",
         )
 
-    settings = calculation_set.advanced_settings if calculation_set is not None else data.settings
+    settings = (
+        calculation_set.advanced_settings
+        if calculation_set is not None
+        else data.settings
+    )
 
     if settings is None:
         settings = AdvancedSettingsDto()
 
     try:
+        io_service.ensure_file_hashes_exist(data.file_hashes, user_id)
         io_service.prepare_inputs(user_id, computation_id, data.file_hashes)
 
-        if not data.file_hashes:
-            # get all files if none provided and computation has already been set up
+        file_hashes = data.file_hashes
+        if not file_hashes:
+            # get all files if non provided and computation has already been set up
             inputs_path = io_service.get_inputs_path(computation_id, user_id)
-            data.file_hashes = [
-                io_service.parse_filename(file)[0] for file in io_service.listdir(inputs_path)
+            file_hashes = [
+                io_service.parse_filename(file)[0]
+                for file in io_service.listdir(inputs_path)
             ]
 
-        if not data.file_hashes:
+        if not file_hashes:
             # no files found and provided
             raise BadRequestError(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No file hashes provided.",
             )
 
-        data.file_hashes = list(set(data.file_hashes))
+        file_hashes = list(set(file_hashes))
 
         total_size = sum(
-            io_service.get_file_size(file_hash, user_id) or 0 for file_hash in data.file_hashes
+            io_service.get_file_size(file_hash, user_id) or 0
+            for file_hash in file_hashes
         )
 
         if total_size > io_service.max_file_size:
@@ -402,60 +448,90 @@ async def calculate_charges(
         configs = data.configs
         if not configs:
             # use most suitable method and parameters if none provided
-            suitable = await chargefw2.get_computation_suitable_methods(computation_id, user_id)
+            suitable = await chargefw2.get_computation_suitable_methods(
+                computation_id, user_id, settings
+            )
 
             if len(suitable.methods) == 0:
                 raise BadRequestError(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail="No suitable methods found."
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="No suitable methods found.",
                 )
 
             method_name = suitable.methods[0].internal_name
             parameters = suitable.parameters.get(method_name, [])
-            parameters_name = parameters[0].internal_name if len(parameters) > 0 else None
+            parameters_name = (
+                parameters[0].internal_name if len(parameters) > 0 else None
+            )
 
-            configs = [CalculationConfigDto(method=method_name, parameters=parameters_name)]
-
-        # split calculations into those that need to be calculated and those that are cached
-        to_calculate, cached = storage_service.filter_existing_calculations(
-            settings, data.file_hashes, configs
-        )
-        calculations = await chargefw2.calculate_charges(
-            computation_id, settings, to_calculate, user_id
-        )
-
-        # add cached items to results
-        for result in calculations:
-            if result.config in cached:
-                result.calculations.extend(cached[result.config])
-
-        calculations.extend(
-            [
-                CalculationResultDto(config=config, calculations=results)
-                for config, results in cached.items()
+            configs = [
+                CalculationConfigDto(method=method_name, parameters=parameters_name)
             ]
+
+        io_service.change_computation_state(
+            user_id, computation_id, CalculationState.CALCULATING
         )
-
-        storage_service.store_calculation_results(computation_id, settings, calculations, user_id)
-        await chargefw2.save_charges(settings, computation_id, calculations, user_id)
-        _ = mmcif_service.write_to_mmcif(user_id, computation_id, calculations)
-
-        if user_id is None:
-            # free guest compute space if needed
-            io_service.free_guest_compute_space()
 
         if response_format == "none":
+            background_tasks.add_task(
+                _calculate_charges,
+                computation_id,
+                file_hashes,
+                settings,
+                configs,
+                user_id,
+                chargefw2,
+                storage_service,
+                mmcif_service,
+                io_service,
+            )
+
             return Response(data=computation_id)
+
+        calculations = await _calculate_charges(
+            computation_id,
+            file_hashes,
+            settings,
+            configs,
+            user_id,
+            chargefw2,
+            storage_service,
+            mmcif_service,
+            io_service,
+        )
 
         return Response(data={"computationId": computation_id, "results": calculations})
     except BadRequestError as e:
         raise e
     except Exception as e:
         raise BadRequestError(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=f"Error calculating charges. {str(e)}"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error calculating charges. {str(e)}",
         ) from e
 
 
-# --- Route handlers used by ACC II Web ---
+@charges_router.get("/{computation_id}/status")
+@inject
+async def get_calculation_status(
+    request: Request,
+    computation_id: Annotated[str, Path(description="UUID of the computation.")],
+    io: IOService = Depends(Provide[Container.io_service]),
+) -> Response[dict]:
+    """Returns the status of a computation."""
+    user_id = str(request.state.user.id) if request.state.user is not None else None
+
+    try:
+        state, note = io.get_computation_state(user_id, computation_id)
+
+        if state is CalculationState.FAILED:
+            return Response(data={"status": state.name, "error": note})
+
+        return Response(data={"status": state.name})
+    except Exception:
+        return Response(data={"status": "UNKNOWN"})
+
+
+# --- Route handlers used by ACC III Web ---
 
 
 @charges_router.post("/{computation_id}/methods/suitable", include_in_schema=False)
@@ -476,7 +552,8 @@ async def computation_suitable_methods(
         return Response(data=data)
     except Exception as e:
         raise BadRequestError(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Error getting suitable methods."
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Error getting suitable methods.",
         ) from e
 
 
@@ -486,7 +563,9 @@ async def setup(
     request: Request,
     config: SetupRequest,
     io_service: IOService = Depends(Provide[Container.io_service]),
-    storage_service: CalculationStorageService = Depends(Provide[Container.storage_service]),
+    storage_service: CalculationStorageService = Depends(
+        Provide[Container.storage_service]
+    ),
 ):
     """Prepares input for computation so it can be run later."""
 
@@ -503,7 +582,8 @@ async def setup(
             )
 
     total_size = sum(
-        io_service.get_file_size(file_hash, user_id) or 0 for file_hash in config.file_hashes
+        io_service.get_file_size(file_hash, user_id) or 0
+        for file_hash in config.file_hashes
     )
 
     if total_size > io_service.max_file_size:
@@ -520,6 +600,7 @@ async def setup(
         config.settings = AdvancedSettingsDto()
 
     try:
+        io_service.ensure_file_hashes_exist(config.file_hashes, user_id)
         io_service.prepare_inputs(user_id, computation_id, config.file_hashes)
         storage_service.setup_calculation(
             computation_id, config.settings, config.file_hashes, user_id
@@ -527,7 +608,8 @@ async def setup(
         return Response(data=computation_id)
     except Exception as e:
         raise BadRequestError(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Error setting up calculation."
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Error setting up calculation.",
         ) from e
 
 
@@ -540,7 +622,9 @@ async def get_mmcif(
     molecule: Annotated[str | None, Query(description="Molecule name.")] = None,
     io: IOService = Depends(Provide[Container.io_service]),
     mmcif_service: MmCIFService = Depends(Provide[Container.mmcif_service]),
-    storage_service: CalculationStorageService = Depends(Provide[Container.storage_service]),
+    storage_service: CalculationStorageService = Depends(
+        Provide[Container.storage_service]
+    ),
 ) -> FileResponse:
     """Returns a mmcif file for the provided molecule in the computation."""
 
@@ -556,7 +640,9 @@ async def get_mmcif(
         mmcif_path = mmcif_service.get_molecule_mmcif(charges_path, molecule)
         return FileResponse(path=mmcif_path)
     except FileNotFoundError as e:
-        raise NotFoundError(detail=f"MMCIF file for molecule '{molecule}' not found.") from e
+        raise NotFoundError(
+            detail=f"MMCIF file for molecule '{molecule}' not found."
+        ) from e
     except Exception as e:
         raise BadRequestError(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -567,7 +653,9 @@ async def get_mmcif(
 @charges_router.get("/examples/{example_id}/mmcif", include_in_schema=False)
 @inject
 async def get_example_mmcif(
-    example_id: Annotated[str, Path(description="ID of the example.", example="phenols")],
+    example_id: Annotated[
+        str, Path(description="ID of the example.", examples="phenols")
+    ],
     molecule: Annotated[str | None, Query(description="Molecule name.")] = None,
     io: IOService = Depends(Provide[Container.io_service]),
     mmcif_service: MmCIFService = Depends(Provide[Container.mmcif_service]),
@@ -615,7 +703,9 @@ async def get_molecules(
 @charges_router.get("/examples/{example_id}/molecules", include_in_schema=False)
 @inject
 async def get_example_molecules(
-    example_id: Annotated[str, Path(description="Id of the example.", example="phenols")],
+    example_id: Annotated[
+        str, Path(description="Id of the example.", examples="phenols")
+    ],
     io: IOService = Depends(Provide[Container.io_service]),
     chargefw2: ChargeFW2Service = Depends(Provide[Container.chargefw2_service]),
 ) -> Response[list[str]]:
@@ -639,9 +729,15 @@ async def get_calculations(
     request: Request,
     page: Annotated[int, Query(description="Page number.")] = 1,
     page_size: Annotated[int, Query(description="Number of items per page.")] = 10,
-    order_by: Annotated[Literal["created_at"], Query(description="Order by field.")] = "created_at",
-    order: Annotated[Literal["asc", "desc"], Query(description="Order direction.")] = "desc",
-    storage_service: CalculationStorageService = Depends(Provide[Container.storage_service]),
+    order_by: Annotated[
+        Literal["created_at"], Query(description="Order by field.")
+    ] = "created_at",
+    order: Annotated[
+        Literal["asc", "desc"], Query(description="Order direction.")
+    ] = "desc",
+    storage_service: CalculationStorageService = Depends(
+        Provide[Container.storage_service]
+    ),
 ) -> Response[PagedList[CalculationSetPreviewDto]]:
     """Returns all calculations stored in the database."""
     user_id = str(request.state.user.id) if request.state.user is not None else None
@@ -654,13 +750,18 @@ async def get_calculations(
 
     try:
         filters = CalculationSetFilters(
-            order=order, order_by=order_by, page=page, page_size=page_size, user_id=user_id
+            order=order,
+            order_by=order_by,
+            page=page,
+            page_size=page_size,
+            user_id=user_id,
         )
         calculations = storage_service.get_calculations(filters)
         return Response(data=calculations)
     except Exception as e:
         raise BadRequestError(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Error getting calculations."
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Error getting calculations.",
         ) from e
 
 
@@ -670,7 +771,9 @@ async def delete_calculation(
     request: Request,
     computation_id: Annotated[str, Path(description="UUID of the computation.")],
     chargefw2: ChargeFW2Service = Depends(Provide[Container.chargefw2_service]),
-    storage_service: CalculationStorageService = Depends(Provide[Container.storage_service]),
+    storage_service: CalculationStorageService = Depends(
+        Provide[Container.storage_service]
+    ),
 ) -> Response[None]:
     """Deletes the computation."""
     user_id = str(request.state.user.id) if request.state.user is not None else None
@@ -694,3 +797,85 @@ async def delete_calculation(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Something went wrong while deleting computation.",
         ) from e
+
+
+# --- Auxiliary functions ---
+
+
+async def _calculate_charges(
+    computation_id: str,
+    file_hashes: list[str],
+    settings: AdvancedSettingsDto,
+    configs: list[CalculationConfigDto],
+    user_id: str | None,
+    chargefw2: ChargeFW2Service,
+    storage_service: CalculationStorageService,
+    mmcif_service: MmCIFService,
+    io_service: IOService,
+) -> list[CalculationResultDto]:
+    """Runs the charge calculation and waits for results."""
+
+    try:
+        to_calculate, cached = storage_service.filter_existing_calculations(
+            settings, file_hashes, configs
+        )
+        calculations = await chargefw2.calculate_charges(
+            computation_id,
+            settings,
+            to_calculate,
+            user_id,
+        )
+
+        for result in calculations:
+            if result.config in cached:
+                result.calculations.extend(cached[result.config])
+
+        calculations.extend(
+            [
+                CalculationResultDto(config=config, calculations=results)
+                for config, results in cached.items()
+            ]
+        )
+
+        await _save_calculation_results(
+            computation_id,
+            settings,
+            calculations,
+            user_id,
+            storage_service,
+            chargefw2,
+            mmcif_service,
+            io_service,
+        )
+
+        io_service.change_computation_state(
+            user_id, computation_id, CalculationState.COMPLETED
+        )
+
+        return calculations
+    except Exception as e:
+        io_service.change_computation_state(
+            user_id, computation_id, CalculationState.FAILED, str(e)
+        )
+
+
+async def _save_calculation_results(
+    computation_id: str,
+    settings: AdvancedSettingsDto,
+    calculations: list[CalculationResultDto],
+    user_id: str | None,
+    storage_service: CalculationStorageService,
+    chargefw2: ChargeFW2Service,
+    mmcif_service: MmCIFService,
+    io_service: IOService,
+) -> None:
+    """Saves calculation results to storage and generates mmCIF files."""
+
+    storage_service.store_calculation_results(
+        computation_id, settings, calculations, user_id
+    )
+    await chargefw2.save_charges(settings, computation_id, calculations, user_id)
+    _ = mmcif_service.write_to_mmcif(user_id, computation_id, calculations)
+
+    if user_id is None:
+        io_service.free_guest_compute_space()

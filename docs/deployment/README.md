@@ -1,7 +1,7 @@
 # Deployment
 
 ## Deploying to production
-`Deploy to Production` GitHub Action provides a semi-automatic way to deploy new ACC II version, implemented [here](../../.github/workflows/deploy.yml). It connects to the server via SSH and rebuilds the configured containers using `docker compose`. It is triggered on `workflow_dispatch` (i.e., manual trigger).
+`Deploy to Production` GitHub Action provides a semi-automatic way to deploy new ACC III version, implemented [here](../../.github/workflows/deploy.yml). It connects to the server via SSH and rebuilds the configured containers using `docker compose`. It is triggered on `workflow_dispatch` (i.e., manual trigger).
 
 You can trigger the deploy workflow by going to *Actions -> Deploy to Production* and choosing which branch and configuration to use during the deployment:
 ![deploy trigger](./images/deploy-trigger.png)

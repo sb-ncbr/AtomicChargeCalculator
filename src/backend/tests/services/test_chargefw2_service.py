@@ -82,10 +82,10 @@ def get_method(
 
 
 def get_parameters(
-    internal_name: str, full_name: str = "", method: str = "", publication: str = ""
+    internal_name: str, full_name: str = "", method: str = "", publication: str = "", notes: str = ""
 ) -> Parameters:
     return Parameters(
-        internal_name=internal_name, full_name=full_name, method=method, publication=publication
+        internal_name=internal_name, full_name=full_name, method=method, publication=publication, notes=notes
     )
 
 

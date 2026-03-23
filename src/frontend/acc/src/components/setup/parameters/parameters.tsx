@@ -39,7 +39,15 @@ export const Parameters = ({
         onParametersChange={onParametersChange}
       />
       <Separator className="my-4" />
-      <ParametersPublication parameters={currentParameters} />
+      <div className="space-y-4">
+        <ParametersPublication parameters={currentParameters} />
+        {currentParameters?.notes && (
+          <div>
+            <h4 className="text-sm font-bold">Notes</h4>
+            <p className="text-sm whitespace-pre-line">{currentParameters.notes}</p>
+          </div>
+        )}
+      </div>
     </Card>
   );
 };

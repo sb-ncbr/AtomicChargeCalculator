@@ -8,7 +8,7 @@ Life Science Auth is implemented using the OpenID Connect protocol. You can read
 API endpoints related to auth are implemented in [auth.py](../../../src/backend/app/api/v1/routes/auth.py) and a service used for fetching OIDC data is located in [oidc.py](../../../src/backend/app/services/oidc.py).
 
 ## Registering a New Service
-New service can be registered [here](https://services.aai.lifescience-ri.eu/spreg/auth/requests/new). In order for ACC II to work with your new service, be sure to set the following values:
+New service can be registered [here](https://services.aai.lifescience-ri.eu/spreg/auth/requests/new). In order for ACC III to work with your new service, be sure to set the following values:
 - Redirect URIs
 - *Flows the service will use* set to `authorization code`
 - *Token endpoint authentication type* set to `client_secret_basic`
@@ -23,5 +23,5 @@ After the application was successfuly registered, you can set the  *Client ID* (
 ![client id and secret](./images/id-secret.png)
 
 ### Registry Form
-The following configuration was used for ACC II test registration:
+The following configuration was used for ACC III test registration:
 ![service registration form](./images/service-registration.png)

@@ -1,5 +1,5 @@
 # Api
-This module contains endpoints used to communicate with ACC II API. 
+This module contains endpoints used to communicate with ACC III API.
 
 These endpoints are divided in directories based on "domains" and each domain contains the endpoints and types.
 

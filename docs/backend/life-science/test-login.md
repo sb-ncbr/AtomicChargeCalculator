@@ -1,7 +1,7 @@
 # Logging to Life Science Test Environment
 First-time Life Science Login (test environment) requires a few additional steps to go through.
 
-1. After clicking on *Log in* on ACC II page, choose your institution.
+1. After clicking on *Log in* on the ACC III page, choose your institution.
 ![login 1](./images/login1.png)
 
 2. Login via your institution.
@@ -31,8 +31,8 @@ First-time Life Science Login (test environment) requires a few additional steps
 10. Submit. Test membership expires after 30 days.
 ![login 10](./images/login10.png)
 
-11. You have been successfuly registered to the test environment. **You can now navigate back to the ACC II page and click on *Log in* again**.
+11. You have been successfuly registered to the test environment. **You can now navigate back to the ACC III page and click on *Log in* again**.
 ![login 11](./images/login11.png)
 
-12. Consent for releasing your openid for use in ACC II. After clicking on continue, you should be logged in.
+12. Consent for releasing your openid for use in ACC III. After clicking on "continue", you should be logged in.
 ![login 12](./images/login12.png)

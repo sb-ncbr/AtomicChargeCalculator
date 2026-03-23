@@ -19,6 +19,16 @@ load_dotenv()
 class IOLocal(IOBase):
     """Local IO operations."""
 
+    def touch(self, path: str, content: str = "") -> str:
+        self.mkdir(pathlib.Path(path).parent)
+
+        with open(path, "a") as f:
+            f.write(content)
+
+    def read(self, path: str) -> str:
+        with open(path) as f:
+            return f.read()
+
     def mkdir(self, path: str) -> str:
         os.makedirs(path, exist_ok=True)
         return path
@@ -27,7 +37,10 @@ class IOLocal(IOBase):
         shutil.rmtree(path)
 
     def rm(self, path: str) -> None:
-        os.remove(path)
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
 
     def cp(self, path_src: str, path_dst: str) -> str:
         return shutil.copy(path_src, path_dst)
@@ -45,7 +58,10 @@ class IOLocal(IOBase):
 
     def dir_size(self, path: str) -> int:
         # Also checking if path exsits since broken symlinks will throw an error
-        return sum(p.lstat().st_size if p.exists() else 0 for p in pathlib.Path(path).rglob("*"))
+        return sum(
+            p.lstat().st_size if p.exists() else 0
+            for p in pathlib.Path(path).rglob("*")
+        )
 
     def file_size(self, path: str) -> int:
         # Also checking if path exsits since broken symlinks will throw an error
@@ -61,8 +77,12 @@ class IOLocal(IOBase):
         except FileNotFoundError:
             return []
 
-    async def store_upload_file(self, file: UploadFile, directory: str) -> tuple[str, str]:
-        tmp_path: str = os.path.join(directory, IOBase.get_unique_filename(file.filename or "file"))
+    async def store_upload_file(
+        self, file: UploadFile, directory: str
+    ) -> tuple[str, str]:
+        tmp_path: str = os.path.join(
+            directory, IOBase.get_unique_filename(file.filename or "file")
+        )
         hasher = hashlib.sha256()
         chunk_size = 1024 * 1024  # 1 MB
 

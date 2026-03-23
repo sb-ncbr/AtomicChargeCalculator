@@ -5,12 +5,14 @@ import { handleApiError } from "@acc/api/base";
 import { Calculations } from "@acc/components/setup/calculations";
 import { Method } from "@acc/components/setup/method/method";
 import { Parameters } from "@acc/components/setup/parameters/parameters";
+import { MissingHydrogensWarning } from "@acc/components/shared/alerts/missing-hydrogen-warning";
 import { Busy } from "@acc/components/shared/busy";
 import { Button } from "@acc/components/ui/button";
 import { Card } from "@acc/components/ui/card";
 import { Form } from "@acc/components/ui/form";
 import { ScrollArea } from "@acc/components/ui/scroll-area";
 import { Separator } from "@acc/components/ui/separator";
+import { useFileStatsContext } from "@acc/lib/hooks/contexts/use-file-stats-context";
 import { useComputationMutations } from "@acc/lib/hooks/mutations/use-calculations";
 import { useSuitableMethodsQuery } from "@acc/lib/hooks/queries/use-calculations";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,6 +39,7 @@ export type SetupProps = {
 
 export const Setup = ({ computationId }: SetupProps) => {
   const navigate = useNavigate();
+  const statsContext = useFileStatsContext();
 
   const {
     data: suitableMethods,
@@ -149,6 +152,11 @@ export const Setup = ({ computationId }: SetupProps) => {
             combinations for given input structures. See the complete list of
             parameters.
           </p>
+
+          {statsContext.isMissingHydrogens(computationId) && (
+            <MissingHydrogensWarning />
+          )}
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <div className="grid grid-cols-1 xxl:grid-cols-2 gap-4">

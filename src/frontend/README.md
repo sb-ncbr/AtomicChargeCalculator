@@ -6,7 +6,7 @@
 
 - Node version 21+. Using [nvm](https://github.com/nvm-sh/nvm) (or [nvm-windows](https://github.com/coreybutler/nvm-windows)) for node version management is recommended.
 
-ACC II uses [pnpm](https://pnpm.io/) for package management, so it needs to be installed first:
+ACC III uses [pnpm](https://pnpm.io/) for package management, so it needs to be installed first:
 
 ```bash
 $ npm install -g pnpm

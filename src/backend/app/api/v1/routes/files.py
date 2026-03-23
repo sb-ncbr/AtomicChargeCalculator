@@ -95,13 +95,13 @@ async def upload(
         for [path, file_hash] in stored_files:
             try:
                 info = await chargefw2.info(path)
-            except RuntimeError:
+            except RuntimeError as e:
                 # Remove files that were uploaded if an error occurs
                 clear_stored_files([path for [path, _] in stored_files])
                 _, filename = io.parse_filename(pathlib.Path(path).name)
                 raise BadRequestError(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Unable to load molecules from file '{filename}'.",
+                    detail=str(e),
                 )
 
             storage_service.store_file_info(file_hash, info)
@@ -217,7 +217,7 @@ async def download_file(
         ) from e
 
 
-# --- Route handlers used by ACC II Web ---
+# --- Route handlers used by ACC III Web ---
 
 
 @files_router.get(path="", include_in_schema=False)
@@ -264,7 +264,7 @@ async def get_files(
 @files_router.get("/download/examples/{example_id}", include_in_schema=False)
 @inject
 async def download_example(
-    example_id: Annotated[str, Path(description="ID of the example.", example="phenols")],
+    example_id: Annotated[str, Path(description="ID of the example.", examples="phenols")],
     io: IOService = Depends(Provide[Container.io_service]),
 ) -> FileResponse:
     try:

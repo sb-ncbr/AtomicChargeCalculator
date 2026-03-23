@@ -198,7 +198,7 @@ class TestChargeFW2Service:
         )
         service._find_suitable_methods = AsyncMock(return_value=mock_suitable_methods)
 
-        result = await service.get_computation_suitable_methods(computation_id, user_id)
+        result = await service.get_computation_suitable_methods(computation_id, user_id, advanced_settings)
 
         assert result == mock_suitable_methods
         calculation_storage_mock.get_calculation_set.assert_called_once_with(computation_id)

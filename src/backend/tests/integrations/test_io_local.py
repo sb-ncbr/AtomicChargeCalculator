@@ -188,7 +188,9 @@ class TestIOService:
         # File now exists
         assert io.path_exists(test_file)
 
-    def test_error_handling_nonexistent_path(self, io_service: tuple[IOLocal, Path]) -> None:
+    def test_error_handling_nonexistent_path(
+        self, io_service: tuple[IOLocal, Path]
+    ) -> None:
         io, base_dir = io_service
         nonexistent_path = os.path.join(base_dir, "does_not_exist")
 

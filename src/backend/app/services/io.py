@@ -305,6 +305,28 @@ class IOService:
                     f"Unable to create symlink from {src_path} to {dst_path}: {str(e)}"
                 )
 
+
+    def ensure_file_hashes_exist(
+        self, file_hashes: list[str], user_id: str | None = None
+    ) -> None:
+        """Ensure all provided file hashes exist in storage."""
+
+        missing_hashes = [
+            file_hash for file_hash in file_hashes if self.get_filepath(file_hash, user_id) is None
+        ]
+
+        if not missing_hashes:
+            return
+
+        if len(missing_hashes) == 1:
+            detail = f"File '{missing_hashes[0]}' not found."
+        else:
+            hashes = ", ".join(f"'{file_hash}'" for file_hash in missing_hashes)
+            detail = f"Files not found: {hashes}."
+
+        raise BadRequestError(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
+
+
     def change_computation_state(
         self,
         user_id: str | None,

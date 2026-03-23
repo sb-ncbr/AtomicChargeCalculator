@@ -80,6 +80,7 @@ async def suitable_methods(
     request: Request,
     data: SuitableMethodsRequest,
     chargefw2: ChargeFW2Service = Depends(Provide[Container.chargefw2_service]),
+    io_service: IOService = Depends(Provide[Container.io_service]),
 ) -> Response[SuitableMethods]:
     """
     Returns suitable methods for the provided computation.
@@ -90,6 +91,7 @@ async def suitable_methods(
     user_id = str(request.state.user.id) if request.state.user is not None else None
 
     try:
+        io_service.ensure_file_hashes_exist(data.file_hashes, user_id)
         suitable = await chargefw2.get_suitable_methods(
             data.file_hashes, data.permissive_types, user_id
         )
@@ -97,8 +99,8 @@ async def suitable_methods(
     except Exception as e:
         raise BadRequestError(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Error getting suitable methods.",
-        ) from e
+            detail=f'Error getting suitable methods. {str(e)}',
+        )
 
 
 @charges_router.get(
@@ -409,6 +411,7 @@ async def calculate_charges(
         settings = AdvancedSettingsDto()
 
     try:
+        io_service.ensure_file_hashes_exist(data.file_hashes, user_id)
         io_service.prepare_inputs(user_id, computation_id, data.file_hashes)
 
         file_hashes = data.file_hashes
@@ -597,6 +600,7 @@ async def setup(
         config.settings = AdvancedSettingsDto()
 
     try:
+        io_service.ensure_file_hashes_exist(config.file_hashes, user_id)
         io_service.prepare_inputs(user_id, computation_id, config.file_hashes)
         storage_service.setup_calculation(
             computation_id, config.settings, config.file_hashes, user_id

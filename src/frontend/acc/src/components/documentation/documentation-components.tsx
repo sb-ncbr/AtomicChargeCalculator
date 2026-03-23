@@ -51,6 +51,14 @@ export const DocumentationComponents = ({
             />
           );
         },
+        h3(props: HTMLAttributes<HTMLHeadingElement>) {
+          return (
+            <h3
+              className="font-bold text-l mb-1 mt-2"
+              {...props}
+            />
+          );
+        },
         strong(props: HTMLAttributes<HTMLElement>) {
           return <strong className="font-bold" {...props} />;
         },

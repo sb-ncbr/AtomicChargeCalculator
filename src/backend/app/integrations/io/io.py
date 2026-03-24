@@ -37,10 +37,7 @@ class IOLocal(IOBase):
         shutil.rmtree(path)
 
     def rm(self, path: str) -> None:
-        try:
-            os.remove(path)
-        except FileNotFoundError:
-            pass
+        os.remove(path)
 
     def cp(self, path_src: str, path_dst: str) -> str:
         return shutil.copy(path_src, path_dst)

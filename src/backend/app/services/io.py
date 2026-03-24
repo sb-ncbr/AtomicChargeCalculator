@@ -339,7 +339,11 @@ class IOService:
         charges_path = self.get_charges_path(computation_id, user_id)
 
         for possible_state in CalculationState:
-            self.io.rm(str(Path(charges_path) / possible_state.value))
+            try:
+                self.io.rm(str(Path(charges_path) / possible_state.value))
+            except Exception:
+                # file not found
+                pass
 
         self.io.touch(str(Path(charges_path) / state.value), note)
 

@@ -7,6 +7,7 @@ services:
       - "443:443"
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt
+      - /var/www/certbot:/var/www/certbot
       - /home/ubuntu/AtomicChargeCalculator/src/deployment/nginx/${NGINX_CONFIG_FILE:-nginx.prod.conf}:/etc/nginx/nginx.conf
       - /home/ubuntu/AtomicChargeCalculator/src/deployment/nginx/snippets:/etc/nginx/snippets
     networks:

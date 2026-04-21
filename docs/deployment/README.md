@@ -1,5 +1,7 @@
 # Deployment
 
+- [Automatic Certificate Renewal](./certificate-renewal.md)
+
 ## Deploying to production
 `Deploy to Production` GitHub Action provides a semi-automatic way to deploy new ACC III version, implemented [here](../../.github/workflows/deploy.yml). It connects to the server via SSH and rebuilds the configured containers using `docker compose`. It is triggered on `workflow_dispatch` (i.e., manual trigger).
 

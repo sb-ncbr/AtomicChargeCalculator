@@ -8,7 +8,7 @@
 - [services](./services/)
 
 # Environment variables
-- `ACC_DB_URL` - PostgreSQL database connection string.
+- `ACC_DB_URL` - PostgreSQL database connection string using Psycopg 3: `postgresql+psycopg://user:password@host:5432/database`. Custom environment overrides must use this driver scheme too.
 - `ACC_DATA_DIR` - Directory for storing uploaded files and calculation results.
 - `ACC_EXAMPLES_DIR` - Directory for storing precalculated examples.
 - `ACC_LOG_DIR` - Directory for storing logs.

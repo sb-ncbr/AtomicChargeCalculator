@@ -2,27 +2,21 @@ FROM chargefw2-base:acc
 
 USER root
 
-ENV POETRY_HOME=/opt/poetry
-ENV POETRY_VIRTUALENVS_CREATE=false
-ENV PATH="/opt/poetry/bin:$PATH"
+COPY --from=ghcr.io/astral-sh/uv:0.12.19 /uv /usr/local/bin/uv
+
+ENV UV_PYTHON_DOWNLOADS=never
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
-    curl \
-    gcc \
-    python3-dev \
-    libpq-dev && \
+    python3 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install Poetry
-RUN curl -sSL https://install.python-poetry.org | python3 - && \
-    poetry config virtualenvs.create false
-
-
 WORKDIR /acc
-COPY poetry.lock pyproject.toml ./
-RUN poetry install --no-interaction --no-ansi --no-root
+COPY uv.lock pyproject.toml ./
+RUN uv sync --locked --no-cache --no-build --python /usr/bin/python3
 
 COPY ./app /acc/app
 COPY ./entrypoint.sh /acc/

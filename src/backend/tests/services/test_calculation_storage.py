@@ -442,19 +442,6 @@ class TestCalculationStorageService:
         assert len(cached[sample_calculation_config]) == 1
         assert cached[sample_calculation_config][0].file_hash == "hash456"
 
-    def test_get_calculation_results_not_found(
-        self, service, session_manager_mock, set_repository_mock
-    ):
-        """Test get_calculation_results method returns an empty list when no value is found."""
-
-        session = session_manager_mock.session().__enter__()
-        set_repository_mock.get.return_value = None
-
-        results = service.get_calculation_results("nonexistent")
-
-        set_repository_mock.get.assert_called_once_with(session, "nonexistent")
-        assert results == []
-
     def test_delete_calculation_set(self, service, session_manager_mock, set_repository_mock):
         """Test delete_calculation_set method deletes a calculation_set."""
 

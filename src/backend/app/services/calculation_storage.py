@@ -271,37 +271,6 @@ class CalculationStorageService:
             self.logger.error(f"Error filtering existing calculations: {traceback.format_exc()}")
             raise e
 
-    def get_calculation_results(self, computation_id: str) -> list[CalculationResultDto]:
-        """Get calculation results from database."""
-
-        try:
-            self.logger.info(f"Getting calculation results for computation {computation_id}.")
-            with self.session_manager.session() as session:
-                calculation_set = self.set_repository.get(session, computation_id)
-
-                if not calculation_set:
-                    return []
-
-                result = [
-                    CalculationResultDto(
-                        config=CalculationConfigDto.model_validate(config),
-                        calculations=[
-                            CalculationDto.model_validate(calculation)
-                            for calculation in calculation_set.calculations
-                            if calculation.config == config
-                        ],
-                    )
-                    for config in calculation_set.configs
-                ]
-
-                return result
-
-        except Exception as e:
-            self.logger.error(
-                f"Error getting calculation results for computation {computation_id}: {traceback.format_exc()}"
-            )
-            raise e
-
     def delete_calculation_set(self, computation_id: str) -> None:
         """Delete calculation set from database."""
 

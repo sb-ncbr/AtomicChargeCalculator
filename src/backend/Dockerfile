@@ -11,14 +11,12 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
-    gcc \
-    python3-dev \
-    libpq-dev && \
+    python3 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /acc
 COPY uv.lock pyproject.toml ./
-RUN uv sync --locked --no-cache --python /usr/bin/python3
+RUN uv sync --locked --no-cache --no-build --python /usr/bin/python3
 
 COPY ./app /acc/app
 COPY ./entrypoint.sh /acc/

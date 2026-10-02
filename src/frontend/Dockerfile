@@ -1,11 +1,11 @@
 FROM node:25.8 AS builder
 WORKDIR /app
 
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.33.0
 
 COPY acc/package.json acc/pnpm-lock.yaml* ./
 
-RUN pnpm install --include=dev
+RUN pnpm install --frozen-lockfile --prod=false
 
 COPY acc/ .
 
@@ -22,7 +22,7 @@ COPY --from=builder /app/dist ./dist
 
 COPY acc/package.json acc/pnpm-lock.yaml* ./
 
-RUN npm install -g pnpm serve
+RUN npm install -g pnpm@10.33.0 serve
 
 EXPOSE 3000
 

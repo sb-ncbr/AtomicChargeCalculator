@@ -1,0 +1,5 @@
+# Preserve the dependency scripts skipped by pnpm 10.
+allowBuilds:
+  '@parcel/watcher': false
+  '@scarf/scarf': false
+  esbuild: false

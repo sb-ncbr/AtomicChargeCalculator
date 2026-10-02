@@ -1,9 +1,9 @@
-FROM node:25.8 AS builder
+FROM node:26.10.0 AS builder
 WORKDIR /app
 
-RUN npm install -g pnpm@10.33.0
+RUN npm install -g pnpm@12.8.1
 
-COPY acc/package.json acc/pnpm-lock.yaml* ./
+COPY acc/package.json acc/pnpm-lock.yaml acc/pnpm-workspace.yaml ./
 
 RUN pnpm install --frozen-lockfile --prod=false
 
@@ -15,7 +15,7 @@ RUN echo "VITE_BASE_API_URL=${VITE_BASE_API_URL}" > .env.production
 
 RUN pnpm build
 
-FROM node:25.8-slim
+FROM node:26.10.0-slim
 WORKDIR /app
 
 RUN npm install -g serve@14.2.6

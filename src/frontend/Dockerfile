@@ -18,12 +18,12 @@ RUN pnpm build
 FROM node:25.8-slim
 WORKDIR /app
 
+RUN npm install -g serve@14.2.6
+
 COPY --from=builder /app/dist ./dist
-
-COPY acc/package.json acc/pnpm-lock.yaml* ./
-
-RUN npm install -g pnpm@10.33.0 serve
 
 EXPOSE 3000
 
-CMD ["pnpm", "prod"]
+USER node
+
+CMD ["serve", "-s", "dist"]

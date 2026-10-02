@@ -3,12 +3,10 @@
 import os
 
 import httpx
-
+import jwt
 from cachetools import TTLCache
 from dotenv import load_dotenv
-
-from jose import JWTError, jwt
-
+from jwt.exceptions import PyJWTError
 from services.logging.base import LoggerBase
 
 
@@ -102,13 +100,13 @@ class OIDCService:
 
             payload = jwt.decode(
                 token,
-                rsa_key,
+                jwt.PyJWK.from_dict(rsa_key, algorithm="RS256").key,
                 algorithms=["RS256"],
                 audience=self.client_id,
                 issuer=config["issuer"],
             )
             return payload
-        except JWTError as e:
+        except PyJWTError as e:
             self.logger.warn(f"Invalid token: {str(e)}")
             return None
         except Exception as e:

@@ -15,13 +15,13 @@ Migrations are handled by `alembic`, with related code being located [here](../.
 ### Creating a new migration
 ```bash
 $ cd src/backend/app
-$ poetry run alembic revision --autogenerate -m "<migration name>"
+$ uv run --no-sync alembic revision --autogenerate -m "<migration name>"
 ```
 
 ### Running migrations
 ```bash
 $ cd src/backend/app
-$ poetry run alembic upgrade head
+$ uv run --no-sync alembic upgrade head
 ```
 
 ## Updating the database schema

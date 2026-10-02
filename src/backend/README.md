@@ -26,18 +26,18 @@ $ cmake .. -DCMAKE_INSTALL_PREFIX=<WHERE-TO-INSTALL> -DPYTHON_MODULE=ON
 All required environment variables are located in the [.env file](./app/.env) except `OIDC_CLIENT_ID` and `OIDC_CLIENT_SECRET` (required for Life Science auth, can be ignored for local setup). All used environment variables are described in [docs](../../docs/backend/README.md). How to obtain the abovementioned environment variables is also mentioned [here](../../docs/backend/life-science/README.md). 
 
 ### Installing dependencies
-ACC III uses [Poetry](https://python-poetry.org/) for depencency management.
+ACC III uses [uv](https://docs.astral.sh/uv/) for dependency management. Docker and CI use uv 0.12.19.
 
-#### Install Poetry
+#### Install uv
 ```bash
-$ curl -sSL https://install.python-poetry.org | python3 -
+$ curl -LsSf https://astral.sh/uv/0.12.19/install.sh | sh
 ```
 
 #### Install project dependencies
-*Note:* Poetry will automatically create a virtual environment inside the project before the installation. Configured [here](./poetry.toml).
+uv creates a `.venv` in the backend directory and installs the versions recorded in `uv.lock`. Use Python 3.13 or newer, matching the Python version used to build your ChargeFW2 bindings. Docker uses Ubuntu's Python and does not download another interpreter.
 
 ```bash
-$ poetry install
+$ uv sync --locked --no-python-downloads --python python3
 ```
 
 ### Startup
@@ -53,13 +53,13 @@ $ cd app
 
 After the database is ready, we need to run migrations:
 ```bash
-$ poetry run alembic upgrade head
+$ uv run --no-sync alembic upgrade head
 ```
 
 API can now be started just by running the main file:
 
 ```bash
-$ poetry run gunicorn --workers 4 --worker-class uvicorn.workers.UvicornWorker main:web_app
+$ uv run --no-sync gunicorn --workers 4 --worker-class uvicorn.workers.UvicornWorker main:web_app
 ```
 
 API runs by default on `--bind 127.0.0.1:8000`. Documentation (Swagger) is available on `/docs`. Alternatively you can use Redoc available on `/redoc`.

@@ -26,7 +26,7 @@ cd ./app || {
 }
 
 echo "Installing dependencies..."
-poetry install || {
+uv sync --locked --no-python-downloads --python python3 || {
     echo "Failed to install dependencies"
     exit 1
 }
@@ -50,10 +50,10 @@ fi
 echo "PostgreSQL container is ready."
 
 echo "Running migrations..."
-poetry run alembic upgrade head
+uv run --no-sync alembic upgrade head
 
 echo "Setting up the environment..."
 export CHARGEFW2_INSTALL_DIR=/opt/chargefw2
 
 echo "Starting the web server..."
-poetry run gunicorn --workers 4 --worker-class uvicorn.workers.UvicornWorker main:web_app
+uv run --no-sync gunicorn --workers 4 --worker-class uvicorn.workers.UvicornWorker main:web_app

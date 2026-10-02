@@ -1,4 +1,4 @@
-[![zenodo](https://zenodo.org/badge/DOI/10.1093/nar/gkaa367.svg)](https://doi.org/10.1093/nar/gkaa367)
+[![zenodo](https://zenodo.org/badge/DOI/10.1093/nar/gkag379.svg)](https://doi.org/10.1093/nar/gkag379)
 [![License](http://img.shields.io/badge/license-MIT-green.svg?style=flat)](./LICENSE)
 
 # Atomic Charge Calculator III
@@ -11,4 +11,4 @@ It features [20 empirical methods](https://acc.biodata.ceitec.cz/methods.pdf) al
 ## How to cite
 If you found Atomic Charge Calculator helpful, please cite:
 
-[Raček, T., Schindler, O., Toušek, D., Horský, V., Berka, K., Koča, J., & Svobodová, R. (2020). Atomic Charge Calculator II: web-based tool for the calculation of partial atomic charges. Nucleic Acids Research](https://doi.org/10.1093/nar/gkaa367).
+[Raček T., Pilát M., Schindler O., Bučeková G., Tichý D., Berka K., Svobodová R. (2026). Atomic Charge Calculator III: a modern platform for calculating partial atomic charges. Nucleic Acids Research](https://doi.org/10.1093/nar/gkag379).

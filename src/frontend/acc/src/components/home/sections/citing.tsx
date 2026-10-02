@@ -6,16 +6,14 @@ export const Citing = () => {
       <p>
         If you found Atomic Charge Calculator III helpful, please cite:{" "}
         <i>
-          Raček, T., Schindler, O., Toušek, D., Horský, V., Berka, K., Koča, J.,
-          & Svobodová, R. (2020).{" "}
+          Raček T., Pilát M., Schindler O., Bučeková G., Tichý D., Berka K., Svobodová R. (2026).{" "}
           <a
-            href="https://doi.org/10.1093/nar/gkaa367"
+            href="https://doi.org/10.1093/nar/gkag379"
             target="_blank"
             referrerPolicy="no-referrer"
             className="text-primary hover:underline" rel="noreferrer"
           >
-            Atomic Charge Calculator II: web-based tool for the calculation of
-            partial atomic charges
+            Atomic Charge Calculator III: a modern platform for calculating partial atomic charges
           </a>
           . Nucleic Acids Research.
         </i>{" "}

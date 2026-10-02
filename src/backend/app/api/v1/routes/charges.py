@@ -386,7 +386,7 @@ async def calculate_charges(
         if available_b <= 0:
             quota_mb = quota_b / 1024 / 1024
             raise BadRequestError(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Unable to calculate charges. Quota exceeded. "
                 + f"Maximum storage space is {quota_mb} MB.",
             )
@@ -440,7 +440,7 @@ async def calculate_charges(
         if total_size > io_service.max_file_size:
             max_file_size_mb = io_service.max_file_size / 1024 / 1024
             raise BadRequestError(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                 detail="Unable to calculate charges. Calculation is too large. "
                 + f"Maximum allowed size is {max_file_size_mb} MB.",
             )
@@ -576,7 +576,7 @@ async def setup(
         if available_b <= 0:
             quota_mb = quota_b / 1024 / 1024
             raise BadRequestError(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Unable to set up calculation. Quota would be exceeded. "
                 + f"Maximum storage space is {quota_mb} MB.",
             )
@@ -589,7 +589,7 @@ async def setup(
     if total_size > io_service.max_file_size:
         max_file_size_mb = io_service.max_file_size / 1024 / 1024
         raise BadRequestError(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail="Unable to set up calculation. Calculation is too large. "
             + f"Maximum allowed size is {max_file_size_mb} MB.",
         )

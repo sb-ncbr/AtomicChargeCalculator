@@ -602,7 +602,7 @@ class IOService:
         if any((file.size or 0) > self.max_file_size for file in files):
             max_file_size_mb = self.max_file_size / 1024 / 1024
             raise BadRequestError(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                 detail="Unable to upload files. One or more files are too large. "
                 + f"Maximum allowed size is {max_file_size_mb} MB.",
             )
@@ -612,7 +612,7 @@ class IOService:
         if upload_size_b > self.max_upload_size:
             max_upload_size_mb = self.max_upload_size / 1024 / 1024
             raise BadRequestError(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                 detail="Unable to upload files. Maximum upload size exceeded. "
                 + f"Maximum upload size is {max_upload_size_mb} MB.",
             )
@@ -633,7 +633,7 @@ class IOService:
             if upload_size_b > available_b:
                 quota_mb = quota_b / 1024 / 1024
                 raise BadRequestError(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     detail="Unable to upload files. Quota exceeded. "
                     + f"Maximum storage space is {quota_mb} MB.",
                 )

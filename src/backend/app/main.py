@@ -40,7 +40,8 @@ def move_example_files() -> None:
 def create_app() -> FastAPI:
     """Creates FastAPI apps with routers and middleware."""
 
-    move_example_files()
+    if not load_dotenv():
+        raise EnvironmentError("Could not load environment variables.")
 
     # Create DI container
     container = Container()
@@ -49,6 +50,8 @@ def create_app() -> FastAPI:
         title="Atomic Charge Calculator III API",
         root_path="/api",
         swagger_ui_parameters={"syntaxHighlight": False},
+        # Preserve the existing logging setup without automatic telemetry exporters.
+        telemetry={"tracing": False, "metrics": False, "logs": False, "auto_configure": False},
     )
 
     container.wire()
@@ -78,4 +81,7 @@ def create_app() -> FastAPI:
     return app
 
 
-web_app = create_app()
+if __name__ == "__main__":
+    move_example_files()
+else:
+    web_app = create_app()

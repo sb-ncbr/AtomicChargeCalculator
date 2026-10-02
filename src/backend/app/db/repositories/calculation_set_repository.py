@@ -106,7 +106,7 @@ class CalculationSetRepository:
     def _paginate(
         self, session: Session, statement: Select, page: int, page_size: int
     ) -> PagedList[CalculationSet]:
-        total_statement = select(func.count()).select_from(statement)
+        total_statement = select(func.count()).select_from(statement.subquery())
         items_statement = statement.limit(page_size).offset((page - 1) * page_size)
 
         total_count = (session.execute(total_statement)).unique().scalar()

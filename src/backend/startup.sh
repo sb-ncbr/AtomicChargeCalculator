@@ -55,5 +55,7 @@ uv run --no-sync alembic upgrade head
 echo "Setting up the environment..."
 export CHARGEFW2_INSTALL_DIR=/opt/chargefw2
 
+uv run --no-sync python main.py || exit $?
+
 echo "Starting the web server..."
-uv run --no-sync gunicorn --workers 4 --worker-class uvicorn.workers.UvicornWorker main:web_app
+uv run --no-sync gunicorn --workers 4 --worker-class uvicorn_worker.UvicornWorker main:web_app

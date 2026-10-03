@@ -10,6 +10,16 @@ services:
       - /var/www/certbot:/var/www/certbot
       - /home/ubuntu/AtomicChargeCalculator/src/deployment/nginx/${NGINX_CONFIG_FILE:-nginx.prod.conf}:/etc/nginx/nginx.conf
       - /home/ubuntu/AtomicChargeCalculator/src/deployment/nginx/snippets:/etc/nginx/snippets
+      - type: bind
+        source: /var/log/acc/nginx
+        target: /var/log/nginx
+        bind:
+          create_host_path: false
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - acc-network
     restart: 

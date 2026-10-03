@@ -1,0 +1,20 @@
+/var/log/acc/nginx/access.log /var/log/acc/nginx/error.log {
+    monthly
+    rotate 24
+    missingok
+    notifempty
+    compress
+    delaycompress
+    dateext
+    create 0640 root adm
+    su root adm
+    sharedscripts
+    postrotate
+        if /usr/bin/docker inspect acc-nginx >/dev/null 2>&1; then
+            running=$(/usr/bin/docker inspect --format '{{.State.Running}}' acc-nginx) || exit 1
+            if [ "$running" = true ]; then
+                /usr/bin/docker kill --signal=USR1 acc-nginx
+            fi
+        fi
+    endscript
+}

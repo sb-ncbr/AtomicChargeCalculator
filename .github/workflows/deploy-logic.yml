@@ -52,6 +52,10 @@ jobs:
           script: |
             set -e
 
+            # Serialize checkout changes and container/log migration on this host.
+            exec 9>"$HOME/.acc-deploy.lock"
+            flock -n 9 || { echo "Another ACC deployment is running."; exit 1; }
+
             BRANCH_NAME="${{ inputs.branch_name }}"
 
             PROJECT_ROOT="/home/ubuntu/AtomicChargeCalculator"
@@ -96,6 +100,16 @@ jobs:
 
             COMPOSE_FILES="-f docker-compose.yml -f docker-compose.prod.yml"
 
+            if [ "${{ inputs.deploy_nginx }}" == "true" ]; then
+                # One-time host setup and legacy log backup must precede migration.
+                if [ ! -d /var/log/acc/nginx ] || [ ! -f /etc/logrotate.d/acc-nginx ]; then
+                    echo "Prepare /var/log/acc/nginx and install nginx/logrotate on the host before deploying."
+                    exit 1
+                fi
+                systemctl is-active --quiet logrotate.timer
+                docker compose $COMPOSE_FILES run --rm --no-deps --pull never nginx nginx -t
+            fi
+
             if [ "${{ inputs.deploy_chargefw2 }}" == "true" ]; then
                 echo "Deploying ChargeFW2 Base..."
                 docker build -t chargefw2-base:acc -f $CHARGEFW2_DIR/Dockerfile $CHARGEFW2_DIR --no-cache
@@ -114,7 +128,7 @@ jobs:
 
             if [ "${{ inputs.deploy_nginx }}" == "true" ]; then
                 echo "Deploying Nginx..."
-                docker compose $COMPOSE_FILES up -d --no-deps --build --force-recreate nginx
+                docker compose $COMPOSE_FILES up -d --no-deps --pull never --force-recreate nginx
             fi
 
             echo "Pruning unused images..."

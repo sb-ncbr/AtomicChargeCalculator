@@ -11,6 +11,9 @@ if (!baseApiUrl) {
 export const api = axios.create({
   baseURL: baseApiUrl,
   withCredentials: true,
+  headers: {
+    "X-ACC-Client": "web-app",
+  },
 });
 
 export const DEFAULT_ERROR_MESSAGE =

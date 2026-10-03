@@ -173,3 +173,28 @@ scheduled automatically; forced rotation is only a verification step.
 
 Host logs and volumes survive container recreation, not host loss. Arrange and test
 off-server backups separately.
+
+## Usage reports
+
+Generate a local report over SSH; the tool does not change the server. Examples:
+
+```bash
+python3 utils/usage_stats.py --server prod --year 2026 --output /tmp/acc-2026
+python3 utils/usage_stats.py --server prod --database --start-date 2026-07-01 --end-date 2026-10-01 --output /tmp/acc-q3
+```
+
+Use `--year` for a calendar year, or `--start-date` and exclusive `--end-date` for a
+UTC interval. Add `--database` for method, molecules-per-submission, and molecule-size
+summaries. The report is useful for checking web traffic, calculation activity, or the
+mix of small and large inputs. Database dates mean record creation; method counts do
+not distinguish cached results from new calculations. Large-input categories are not
+chemical classifications, and actual computation runtimes are not recorded.
+Nginx results distinguish all IPs from IPs on requests not flagged by the known-bot
+heuristic; calculation submissions are shown separately. API logs lack user agents,
+so bot-excluded API counts are unavailable.
+New frontend requests carry a `web-app` marker; reports separate marked, unmarked,
+and older requests with no marker. Unmarked does not necessarily mean scripted.
+
+Reports contain `report.txt`, `report.json`, and `monthly.csv`; raw IP addresses are
+never included. Choose a new output directory for each run. See `--help` for offline
+log inputs and other options.

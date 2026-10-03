@@ -34,6 +34,9 @@ jobs:
   deploy:
     name: Deploy Logic
     runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-${{ inputs.target_environment }}
+      cancel-in-progress: false
     environment:
       name: ${{ inputs.target_environment }}
 
@@ -43,14 +46,23 @@ jobs:
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          OIDC_CLIENT_ID: ${{ secrets.OIDC_CLIENT_ID }}
+          OIDC_CLIENT_SECRET: ${{ secrets.OIDC_CLIENT_SECRET }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
           command_timeout: 60m
+          envs: DB_PASSWORD,OIDC_CLIENT_ID,OIDC_CLIENT_SECRET
           script: |
             set -e
+
+            # Serialize checkout changes and container/log migration on this host.
+            exec 9>"$HOME/.acc-deploy.lock"
+            flock -n 9 || { echo "Another ACC deployment is running."; exit 1; }
 
             BRANCH_NAME="${{ inputs.branch_name }}"
 
@@ -61,10 +73,6 @@ jobs:
             echo "Deployment Branch: [$BRANCH_NAME]"
 
             echo "Setting up environment variables ..."
-            export DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-
-            export OIDC_CLIENT_ID=${{ secrets.OIDC_CLIENT_ID }}
-            export OIDC_CLIENT_SECRET=${{ secrets.OIDC_CLIENT_SECRET }}
 
             if [ "${{ inputs.target_environment }}" = "Production" ]; then
                 export VITE_BASE_API_URL="https://acc.biodata.ceitec.cz:443/api/v1"
@@ -89,12 +97,22 @@ jobs:
             fi
             sudo git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
             sudo git reset --hard "origin/$BRANCH_NAME"
-            sudo git submodule update --recursive
+            sudo git submodule update --init --recursive
 
             cd $DEPLOY_DIR
             echo "Changed directory to $(pwd)"
 
             COMPOSE_FILES="-f docker-compose.yml -f docker-compose.prod.yml"
+
+            if [ "${{ inputs.deploy_nginx }}" == "true" ]; then
+                # One-time host setup and legacy log backup must precede migration.
+                if [ ! -d /var/log/acc/nginx ] || [ ! -f /etc/logrotate.d/acc-nginx ]; then
+                    echo "Prepare /var/log/acc/nginx and install nginx/logrotate on the host before deploying."
+                    exit 1
+                fi
+                systemctl is-active --quiet logrotate.timer
+                docker compose $COMPOSE_FILES run --rm --no-deps --pull always nginx nginx -t
+            fi
 
             if [ "${{ inputs.deploy_chargefw2 }}" == "true" ]; then
                 echo "Deploying ChargeFW2 Base..."
@@ -114,7 +132,7 @@ jobs:
 
             if [ "${{ inputs.deploy_nginx }}" == "true" ]; then
                 echo "Deploying Nginx..."
-                docker compose $COMPOSE_FILES up -d --no-deps --build --force-recreate nginx
+                docker compose $COMPOSE_FILES up -d --no-deps --pull never --force-recreate nginx
             fi
 
             echo "Pruning unused images..."

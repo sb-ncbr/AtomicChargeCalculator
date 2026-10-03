@@ -1,7 +1,7 @@
 services:
   nginx:
     container_name: acc-nginx
-    image: nginx
+    image: nginx:1.31.6
     volumes:
       - ./nginx/nginx.local.conf:/etc/nginx/nginx.conf:Z
       - ./nginx/snippets:/etc/nginx/snippets:Z

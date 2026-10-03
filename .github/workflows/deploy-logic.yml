@@ -111,7 +111,7 @@ jobs:
                     exit 1
                 fi
                 systemctl is-active --quiet logrotate.timer
-                docker compose $COMPOSE_FILES run --rm --no-deps --pull never nginx nginx -t
+                docker compose $COMPOSE_FILES run --rm --no-deps --pull always nginx nginx -t
             fi
 
             if [ "${{ inputs.deploy_chargefw2 }}" == "true" ]; then

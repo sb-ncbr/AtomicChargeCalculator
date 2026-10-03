@@ -1,38 +1,76 @@
-# Certificate Renewal
-The following doc describes a way to automatically renew SSL certificates using `certbot` and `systemd`.
+# TLS Certificates
 
-## Systemd Configuration
-Certbot relies on `certbot.timer` and `certbot.service` services to automatically renew certificates. Verify that both are running on your system: 
+Certbot runs on the Ubuntu host. Nginx runs in Docker and mounts `/etc/letsencrypt`
+and `/var/www/certbot`. Do not use `certbot --nginx` to configure this container.
 
-```bash
-$ sudo systemctl status certbot.timer
-$ sudo systemctl status certbot.service
+## Initial issuance
 
-# List running certbot timers:
-$ sudo systemctl list-timers | grep certbot
-```
-
-### Webroot Configuration
-So that we don't have to stop the nginx container to free up the port 80 (used by certbot for certificate renewal), we can configure it to use `webroot` authenticator instead.
-
-Use the configuration from [domain.conf](/deployment/certificates/renewal/domain.conf) in `/etc/letsencrypt/renewal/<your-domain>.conf` on your system.
-
-This will use the already running nginx for verification, instead of spinning up a temporary HTTP server in the case of `standalone` authenticator.
-
-## Reloading Nginx
-Once the certificate is renewed (deployed) we need to reload Nginx configuration. This can be achieved with the `deploy` certbot hook. Add the [reload-nginx.sh](/deployment/certificates/renewal-hooks/deploy/reload-nginx.sh) script to the `renewal-hooks` directory on your system:
-```bash
-$ cp deployment/certificates/renewal-hooks/deploy/reload-nginx.sh /etc/letsencrypt/renewal-hooks/deploy
-$ chmod +x /etc/letsencrypt/renewal-hooks/deploy
-```
-
-> _Note:_ Don't forget to adjust the path to the `docker-compose.yml` file on your system, if it differs.
-
-## Testing 
-To test if the setup works, you can force the certificate renewal:
+Set DNS and allow inbound TCP 80 before issuance. On a fresh host, with port 80
+free, use standalone validation. For development:
 
 ```bash
-$ sudo certbot renew --cert-name <your-domain> --force-renew
+sudo certbot certonly --standalone --cert-name acc-dev.biodata.ceitec.cz -d acc-dev.biodata.ceitec.cz
 ```
 
-If everything worked as expected, you should see the new certificate (e.g. when navigating to the page).
+For production:
+
+```bash
+sudo certbot certonly --standalone --cert-name acc2.ncbr.muni.cz -d acc2.ncbr.muni.cz -d acc.biodata.ceitec.cz
+```
+
+Production Nginx uses the `acc2.ncbr.muni.cz` certificate directory for both names;
+the certificate must cover both. Supply the requested contact information and agree
+to the CA terms. Do not rerun standalone issuance against an existing busy server
+without arranging port availability. Existing valid certificates need no reissue.
+
+Once certificates exist, finish the [first deployment](./README.md#first-deployment).
+
+## Webroot renewal
+
+After Nginx is serving HTTP, switch each certificate to webroot renewal so future
+renewals do not stop the website. With a Certbot version supporting `reconfigure`:
+
+```bash
+sudo certbot reconfigure --cert-name acc-dev.biodata.ceitec.cz --authenticator webroot --webroot-path /var/www/certbot
+```
+
+Use `acc2.ncbr.muni.cz` instead on production. Check `certbot reconfigure --help`;
+if the Ubuntu package lacks this command, follow the installed version's documented
+renewal-parameter procedure or upgrade Certbot. The repository
+[domain.conf](../../src/deployment/certificates/renewal/domain.conf) shows renewal
+parameters only: **do not overwrite the entire generated renewal file with it**.
+
+Nginx serves `/.well-known/acme-challenge/` from `/var/www/certbot` on HTTP port 80.
+DNS and that port must remain reachable for renewal.
+
+## Reload hook and scheduler
+
+From the repository root:
+
+```bash
+sudo install -d /etc/letsencrypt/renewal-hooks/deploy
+sudo install -m 0755 src/deployment/certificates/renewal-hooks/deploy/reload-nginx.sh /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+sudo systemctl enable --now certbot.timer
+systemctl status certbot.timer
+```
+
+The hook discovers a running container whose name contains `nginx` and reloads its
+configuration. It assumes one such container on the host. No Compose path needs
+editing. `certbot.service` is a oneshot; it need not stay active between timer runs.
+
+## Verification
+
+```bash
+sudo certbot renew --dry-run
+```
+
+A dry run checks renewal but does not normally execute deploy hooks. Separately,
+after validating the running Nginx configuration, test the installed reload hook:
+
+```bash
+docker exec acc-nginx nginx -t
+sudo /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+```
+
+Inspect command output for successful renewal and reload. Do not routinely force
+real certificate renewals just to test setup; that can consume CA rate limits.

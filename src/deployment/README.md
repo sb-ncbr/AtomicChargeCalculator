@@ -12,12 +12,13 @@ Run from the repository root:
 git submodule update --init --recursive
 docker build -t chargefw2-base:acc -f ChargeFW2/Dockerfile ChargeFW2
 cd src/deployment
-docker compose up -d --build
+docker compose up -d --build --remove-orphans
 ```
 
-This starts four services: PostgreSQL, API, frontend, and Nginx. Access the UI through
-`http://localhost:8080`. Local OIDC credentials and callback settings are placeholders;
-working Life Science login needs a registered client and appropriate configuration.
+This starts three services: PostgreSQL, API, and Nginx, which also serves the built
+frontend. `--remove-orphans` removes the former `acc-web` container from older setups. Access the UI through `http://localhost:8080`. Local OIDC credentials and
+callback settings are placeholders; working Life Science login needs a registered
+client and appropriate configuration.
 
 To stop the local stack without deleting database volumes:
 

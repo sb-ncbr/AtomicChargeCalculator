@@ -1,7 +1,10 @@
 services:
   nginx:
     container_name: acc-nginx
-    image: nginx:1.31.6
+    build:
+      context: ../frontend
+      args:
+        - VITE_BASE_API_URL
     volumes:
       - ./nginx/nginx.local.conf:/etc/nginx/nginx.conf:Z
       - ./nginx/snippets:/etc/nginx/snippets:Z
@@ -41,16 +44,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    networks:
-      - acc-network
-    restart: unless-stopped
-
-  web:
-    container_name: acc-web
-    build: 
-      context: ../frontend
-      args:
-        - VITE_BASE_API_URL
     networks:
       - acc-network
     restart: unless-stopped

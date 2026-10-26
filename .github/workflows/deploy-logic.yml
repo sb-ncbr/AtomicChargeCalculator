@@ -104,14 +104,23 @@ jobs:
 
             COMPOSE_FILES="-f docker-compose.yml -f docker-compose.prod.yml"
 
-            if [ "${{ inputs.deploy_nginx }}" == "true" ]; then
+            if [ "${{ inputs.deploy_web }}" == "true" ] || [ "${{ inputs.deploy_nginx }}" == "true" ]; then
                 # One-time host setup and legacy log backup must precede migration.
                 if [ ! -d /var/log/acc/nginx ] || [ ! -f /etc/logrotate.d/acc-nginx ]; then
                     echo "Prepare /var/log/acc/nginx and install nginx/logrotate on the host before deploying."
                     exit 1
                 fi
                 systemctl is-active --quiet logrotate.timer
-                docker compose $COMPOSE_FILES run --rm --no-deps --pull always nginx nginx -t
+            fi
+
+            if [ "${{ inputs.deploy_web }}" == "true" ]; then
+                # Nginx serves the frontend, so a web deployment rebuilds its image.
+                echo "Building Web..."
+                docker compose $COMPOSE_FILES build --pull nginx
+            fi
+
+            if [ "${{ inputs.deploy_web }}" == "true" ] || [ "${{ inputs.deploy_nginx }}" == "true" ]; then
+                docker compose $COMPOSE_FILES run --rm --no-deps nginx nginx -t
             fi
 
             if [ "${{ inputs.deploy_chargefw2 }}" == "true" ]; then
@@ -125,14 +134,10 @@ jobs:
                 docker compose $COMPOSE_FILES up -d --no-deps --force-recreate api
             fi
 
-            if [ "${{ inputs.deploy_web }}" == "true" ]; then
-                echo "Deploying Web..."
-                docker compose $COMPOSE_FILES up -d --no-deps --build --force-recreate web
-            fi
-
-            if [ "${{ inputs.deploy_nginx }}" == "true" ]; then
+            if [ "${{ inputs.deploy_web }}" == "true" ] || [ "${{ inputs.deploy_nginx }}" == "true" ]; then
                 echo "Deploying Nginx..."
-                docker compose $COMPOSE_FILES up -d --no-deps --pull never --force-recreate nginx
+                # --remove-orphans also removes the former acc-web container.
+                docker compose $COMPOSE_FILES up -d --no-deps --no-build --force-recreate --remove-orphans nginx
             fi
 
             echo "Pruning unused images..."

@@ -1,7 +1,9 @@
 services:
   nginx:
     container_name: acc-nginx
-    image: nginx:1.31.6
+    build:
+      args:
+        VITE_BASE_API_URL: ${VITE_BASE_API_URL}
     ports:
       - "80:80"
       - "443:443"
@@ -43,9 +45,3 @@ services:
     volumes:
       - /home/acc:/home/acc
       - /var/log/acc:/var/log/acc
-  web:
-    build:
-      args:
-        VITE_BASE_API_URL: ${VITE_BASE_API_URL}
-    ports:
-      - "3000:3000"

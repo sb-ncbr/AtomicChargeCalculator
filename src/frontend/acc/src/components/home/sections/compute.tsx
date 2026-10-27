@@ -1,6 +1,4 @@
 import { handleApiError } from "@acc/api/base";
-import { getStats } from "@acc/api/calculations/calculations";
-import { MoleculeSetStats } from "@acc/api/calculations/types";
 import { UploadResponse } from "@acc/api/files/types";
 import { getSuitableMethodsForFiles } from "@acc/api/methods/methods";
 import { MostSuitableMethod } from "@acc/api/methods/types";
@@ -24,7 +22,7 @@ import { useComputationMutations } from "@acc/lib/hooks/mutations/use-calculatio
 import { useFileMutations } from "@acc/lib/hooks/mutations/use-files";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronsUpDown } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { createSearchParams, useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -43,19 +41,30 @@ const computeSchema = z.object({
 
 type ComputeType = z.infer<typeof computeSchema>;
 
+const getMostSuitableMethod = async (
+  fileHashes: string[],
+  permissiveTypes: boolean
+): Promise<MostSuitableMethod> => {
+  const suitableMethods = await getSuitableMethodsForFiles(
+    fileHashes,
+    permissiveTypes
+  );
+  const method = suitableMethods.methods[0];
+  return {
+    method,
+    parameters: suitableMethods.parameters[method.internalName]?.[0],
+  };
+};
+
 export const Compute = () => {
   const navigate = useNavigate();
   const { fileUploadMutation } = useFileMutations();
   const { computeMutation, setupMutation } = useComputationMutations();
   const fileStatsContext = useFileStatsContext();
 
-  const [missingHydrogens, setMissingHydrogens] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadResponse, setUploadResponse] = useState<UploadResponse | null>(
     null
-  );
-  const [statsMap, setStatsMap] = useState<Record<string, MoleculeSetStats>>(
-    {}
   );
   const [mostSuitableMethod, setMostSuitableMethod] =
     useState<MostSuitableMethod | null>(null);
@@ -76,6 +85,15 @@ export const Compute = () => {
     name: "settings.permissiveTypes",
   });
 
+  // Compute and Setup need the finished upload, which also carries the file stats.
+  const isUploaded = form.formState.isValid && uploadResponse !== null;
+  const missingHydrogens =
+    uploadResponse?.some(
+      ({ stats }) =>
+        (stats.atomTypeCounts.find(({ symbol }) => symbol === "H")?.count ??
+          0) === 0
+    ) ?? false;
+
   const onSubmit = async (data: ComputeType) => {
     if (uploadResponse === null) {
       return;
@@ -85,9 +103,7 @@ export const Compute = () => {
 
     fileStatsContext.set(
       compId,
-      Object.fromEntries(
-        uploadResponse.map((f) => [f.fileHash, statsMap[f.fileHash]])
-      )
+      Object.fromEntries(uploadResponse.map((f) => [f.fileHash, f.stats]))
     );
 
     await computeMutation.mutateAsync(
@@ -111,25 +127,9 @@ export const Compute = () => {
     );
   };
 
-  const updateMostSuitableMethod = useCallback(
-    async (fileHashes: string[]) => {
-      const suitableMethods = await getSuitableMethodsForFiles(
-        fileHashes,
-        form.getValues("settings.permissiveTypes")
-      );
-      const mostSuitableMethod = suitableMethods.methods[0];
-      const mostSuitableParams =
-        suitableMethods.parameters[mostSuitableMethod.internalName]?.[0];
-      setMostSuitableMethod({
-        method: mostSuitableMethod,
-        parameters: mostSuitableParams,
-      });
-    },
-    [form]
-  );
-
   const onFileChange = async (data: FileList | null) => {
-    setMissingHydrogens(false);
+    setUploadResponse(null);
+    setMostSuitableMethod(null);
     setUploadError(null);
 
     if (!data) {
@@ -141,35 +141,7 @@ export const Compute = () => {
         setUploadError(handleApiError(error));
         form.resetField("files");
       },
-      onSuccess: async (uploadResponse) => {
-        setUploadResponse(uploadResponse);
-
-        const promises = uploadResponse.map(({ fileHash }) =>
-          getStats(fileHash)
-            .then((stat) => ({ fileHash, stat, error: null }))
-            .catch(() => null)
-        );
-        const stats = (await Promise.all(promises)).filter(
-          (item) => item !== null && item.stat !== null
-        ) as { fileHash: string; stat: MoleculeSetStats }[];
-
-        setStatsMap(
-          stats.reduce(
-            (prev, curr) => {
-              prev[curr.fileHash] = curr.stat;
-              return prev;
-            },
-            {} as Record<string, MoleculeSetStats>
-          )
-        );
-
-        const isMissingHydrogen = stats.some(
-          (stat) =>
-            (stat.stat.atomTypeCounts.find(({ symbol }) => symbol === "H")
-              ?.count ?? 0) === 0
-        );
-        setMissingHydrogens(isMissingHydrogen);
-      },
+      onSuccess: (uploadResponse) => setUploadResponse(uploadResponse),
     });
   };
 
@@ -188,9 +160,7 @@ export const Compute = () => {
         onSuccess: (compId) => {
           fileStatsContext.set(
             compId,
-            Object.fromEntries(
-              uploadResponse.map((f) => [f.fileHash, statsMap[f.fileHash]])
-            )
+            Object.fromEntries(uploadResponse.map((f) => [f.fileHash, f.stats]))
           );
           void navigate({
             pathname: "setup",
@@ -207,9 +177,20 @@ export const Compute = () => {
     if (!uploadResponse) {
       return;
     }
+    // Ignore the answer if the files or settings changed while it was loading.
+    let isCurrent = true;
     const fileHashes = uploadResponse.map(({ fileHash }) => fileHash);
-    void updateMostSuitableMethod(fileHashes);
-  }, [uploadResponse, watchPermissiveTypes, updateMostSuitableMethod]);
+    void getMostSuitableMethod(fileHashes, watchPermissiveTypes).then(
+      (method) => {
+        if (isCurrent) {
+          setMostSuitableMethod(method);
+        }
+      }
+    );
+    return () => {
+      isCurrent = false;
+    };
+  }, [uploadResponse, watchPermissiveTypes]);
 
   return (
     <Card className="w-11/12 md:w-4/5 rounded-none shadow-xl mx-auto p-4 max-w-content mb-12 mt-0 xs:mt-8 md:mt-0 relative">
@@ -260,7 +241,7 @@ export const Compute = () => {
             <Button
               type="submit"
               title="Direct computation of charges using automatically selected empirical charge calculation method."
-              disabled={!form.formState.isValid}
+              disabled={!isUploaded}
             >
               Compute
             </Button>
@@ -268,7 +249,7 @@ export const Compute = () => {
               type="button"
               title="Selection of empirical charge calculation method and its parameters."
               variant={"secondary"}
-              disabled={!form.formState.isValid}
+              disabled={!isUploaded}
               onClick={() => onSetup(form.getValues())}
             >
               Setup Computation

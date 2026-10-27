@@ -1,16 +1,7 @@
-import { createContext, PropsWithChildren } from "react";
+import { PropsWithChildren } from "react";
 
 import { useAuthQuery } from "../hooks/queries/use-auth";
-
-type AuthProviderType = {
-  isAuthenticated: boolean | null;
-  isLoading: boolean;
-};
-
-export const AuthContext = createContext<AuthProviderType>({
-  isAuthenticated: null,
-  isLoading: false,
-});
+import { AuthContext } from "./auth-context";
 
 type AuthProviderProps = PropsWithChildren;
 

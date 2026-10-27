@@ -2,7 +2,8 @@ import { cn } from "@acc/lib/utils";
 import MolstarPartialCharges from "@acc/lib/viewer/viewer";
 import { HTMLAttributes, useEffect } from "react";
 
-import { Busy, BusySize } from "../shared/busy";
+import { Busy } from "../shared/busy";
+import { BusySize } from "../shared/busy-size";
 import { MolstarViewer } from "./molstar";
 
 export type MolstarWrapperProps = {

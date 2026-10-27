@@ -3,6 +3,8 @@ import { LoaderCircle } from "lucide-react";
 import { HTMLAttributes, PropsWithChildren, useEffect, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 
+import { BusySize } from "./busy-size";
+
 export type BusyProps = {
   isBusy: boolean;
   size?: BusySize;
@@ -10,11 +12,6 @@ export type BusyProps = {
   delay?: number;
 } & HTMLAttributes<HTMLElement> &
   PropsWithChildren;
-
-export enum BusySize {
-  Big = 50,
-  Small = 25,
-}
 
 // We don't want to show busy if loading takes short amount of time to avoid flickering.
 const BusyDelayMs = 200;

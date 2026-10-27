@@ -32,7 +32,8 @@ files_router = APIRouter(prefix="/files", tags=["files"])
 
 @files_router.post(
     "/upload",
-    description="Stores the provided files on disk and returns their hashes that can be used for further operations. "
+    description="Stores the provided files on disk and returns their hashes that can be used for further operations, "
+    + "together with statistics about the molecules they contain. "
     + f"Allowed file types are {', '.join(ALLOWED_FILE_TYPES)}.",
     responses={
         413: {
@@ -92,6 +93,7 @@ async def upload(
             *[io.store_upload_file(file, workdir) for file in files]
         )
 
+        data = []
         for [path, file_hash] in stored_files:
             try:
                 info = await chargefw2.info(path)
@@ -105,11 +107,13 @@ async def upload(
                 )
 
             storage_service.store_file_info(file_hash, info)
-
-        data = [
-            UploadResponse(file=io.parse_filename(pathlib.Path(name).name)[1], file_hash=file_hash)
-            for [name, file_hash] in stored_files
-        ]
+            data.append(
+                UploadResponse(
+                    file=io.parse_filename(pathlib.Path(path).name)[1],
+                    file_hash=file_hash,
+                    stats=info,
+                )
+            )
 
         return Response(data=data)
     except BadRequestError as e:

@@ -17,7 +17,7 @@ import { useComputationMutations } from "@acc/lib/hooks/mutations/use-calculatio
 import { useSuitableMethodsQuery } from "@acc/lib/hooks/queries/use-calculations";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -58,6 +58,10 @@ export const Setup = ({ computationId }: SetupProps) => {
     defaultValues: {
       computations: [],
     },
+  });
+  const computations = useWatch({
+    control: form.control,
+    name: "computations",
   });
 
   const onSubmit = async (data: SetupFormType) => {
@@ -193,7 +197,7 @@ export const Setup = ({ computationId }: SetupProps) => {
                 <Button
                   type="submit"
                   className="mr-4"
-                  disabled={!form.getValues("computations").length}
+                  disabled={!computations.length}
                 >
                   Compute
                 </Button>

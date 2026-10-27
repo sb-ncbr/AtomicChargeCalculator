@@ -24,7 +24,7 @@ two installations on one host. ChargeFW2 currently contains x86-64-specific path
    run a host web server that occupies those ports.
 
 **Network warning:** the current deployment Compose file also publishes database
-port 5432, API port 8000, and frontend port 3000 on all interfaces. Restrict these
+port 5432 and API port 8000 on all interfaces. Restrict these
 through the infrastructure firewall or appropriately reviewed Docker-aware rules.
 Do not assume UFW alone blocks Docker-published ports.
 
@@ -88,7 +88,7 @@ export NGINX_CONFIG_FILE=nginx.prod.conf
 ```
 
 Register the matching callback with Life Science. The frontend API URL is baked
-into its image at build time. Both deployments use the database name `postgres_prod`
+into the Nginx image at build time. Both deployments use the database name `postgres_prod`
 and user `prod_user` on their respective hosts. Changing `DB_PASSWORD` does not
 change the password in an already initialized PostgreSQL volume.
 
@@ -102,7 +102,7 @@ From the repository root, with the environment above set:
 ```bash
 docker build -t chargefw2-base:acc -f ChargeFW2/Dockerfile ChargeFW2
 cd src/deployment
-docker compose -f docker-compose.yml -f docker-compose.prod.yml pull nginx
+docker compose -f docker-compose.yml -f docker-compose.prod.yml build --pull nginx
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d db
 docker compose -f docker-compose.yml -f docker-compose.prod.yml ps db
 ```
@@ -110,10 +110,10 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml ps db
 Wait until PostgreSQL is healthy, then build and start the application:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build api web
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build api
 docker logs --tail 100 acc-api
-docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm --no-deps --pull never nginx nginx -t
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-deps --pull never nginx
+docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm --no-deps nginx nginx -t
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-deps --no-build nginx
 ```
 
 Check API startup logs for successful database migrations and application startup;
@@ -122,8 +122,8 @@ HTTPS, API calls, example viewing, and login. Complete certificate renewal setup
 
 Use **both** Compose files on hosted dev and production. Bare `docker compose`
 loads the local-development override. Nginx preflight needs existing certificates,
-host log setup, a locally available Nginx image, and running/resolvable `api` and
-`web` services. Consequently, selecting every GitHub deployment option on an empty
+host log setup, a built Nginx image, and a running/resolvable `api` service.
+Consequently, selecting every GitHub deployment option on an empty
 host is not a substitute for this bootstrap.
 
 ## Subsequent GitHub deployments
@@ -133,7 +133,9 @@ the workflow revision, the branch to deploy, and the required checkboxes:
 
 - **Rebuild ChargeFW2:** builds the base image; also select **Deploy API** to use it.
 - **Deploy API:** builds and recreates the API container.
-- **Deploy Web:** builds and recreates the frontend container.
+- **Deploy Web:** rebuilds the Nginx image, which contains the built frontend, then
+  runs the same checks as **Deploy Nginx** and recreates Nginx. Because Nginx is the
+  public entry point, this briefly interrupts API traffic as well.
 - **Deploy Nginx:** checks logging prerequisites and tests the candidate Nginx
   configuration before service updates, then recreates Nginx.
 
@@ -141,8 +143,12 @@ All checkboxes default to false. The [deployment logic](../../.github/workflows/
 resets the server checkout to the selected branch; do not keep uncommitted work
 there. A host lock rejects overlapping workflow deployments. Deployments are not
 zero-downtime and API recreation can interrupt jobs. Use a maintenance window when
-necessary. Nginx uses `--pull never`; explicitly pull a chosen image before deploying
-an image update. Restarting a container does not apply changed Compose mounts.
+necessary. The Nginx base image is pinned in `src/frontend/Dockerfile`; **Deploy Web**
+rebuilds it, while **Deploy Nginx** alone reuses the existing image. Installations
+that predate serving the frontend from Nginx still run the stock Nginx image and a
+separate `acc-web` container; select **Deploy Web** for their first deployment, which
+builds the new image and removes `acc-web`. Restarting a container does not apply
+changed Compose mounts.
 
 ## Logging maintenance
 

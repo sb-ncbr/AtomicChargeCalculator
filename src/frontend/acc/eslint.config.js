@@ -7,7 +7,6 @@ import js from "@eslint/js";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
-import reactCompiler from "eslint-plugin-react-compiler";
 import tseslint from "typescript-eslint";
 import tsParser from "@typescript-eslint/parser";
 import path from "path";
@@ -56,13 +55,20 @@ export default tseslint.config(
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
       "unused-imports": unusedImports,
-      "react-compiler": reactCompiler,
       react,
       prettier,
       perfectionist,
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
+      // React Compiler diagnostics stay warnings, as with eslint-plugin-react-compiler.
+      ...Object.fromEntries(
+        Object.entries(reactHooks.configs.recommended.rules).map(
+          ([rule, level]) => [
+            rule,
+            rule === "react-hooks/rules-of-hooks" ? level : "warn",
+          ]
+        )
+      ),
 
       "react-refresh/only-export-components": [
         "warn",
@@ -85,7 +91,7 @@ export default tseslint.config(
       "@typescript-eslint/no-floating-promises": "error",
       "@typescript-eslint/no-non-null-assertion": "error",
 
-      "no-console": "warn",
+      "no-console": ["warn", { allow: ["warn", "error"] }],
       "no-await-in-loop": "warn",
       "no-param-reassign": "warn",
       "no-trailing-spaces": "warn",
@@ -95,8 +101,6 @@ export default tseslint.config(
 
       "perfectionist/sort-imports": ["error", {}],
       "perfectionist/sort-named-imports": ["error", {}],
-
-      "react-compiler/react-compiler": "warn",
     },
   }
 );

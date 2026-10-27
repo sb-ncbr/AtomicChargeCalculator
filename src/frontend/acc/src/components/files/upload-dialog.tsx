@@ -23,7 +23,7 @@ import { Input } from "../ui/input";
 
 const uploadSchema = z.object({
   files: z
-    .instanceof(FileList, { message: "Files are required." })
+    .instanceof(FileList, { error: "Files are required." })
     .refine((files) => files.length > 0),
 });
 

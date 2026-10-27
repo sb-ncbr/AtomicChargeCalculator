@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 
-import { AuthProvider } from "./lib/contexts/auth-context";
+import { AuthProvider } from "./lib/contexts/auth-provider";
 import { FileStatsContextProvider } from "./lib/contexts/file-stats-context";
 import { useFileStatsLocalStorage } from "./lib/hooks/use-file-stats-local-storage";
 import { Router } from "./router";

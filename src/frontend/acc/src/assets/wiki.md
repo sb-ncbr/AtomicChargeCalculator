@@ -178,15 +178,36 @@ Example response:
   "data": [
     {
       "file": "molecule1.sdf",
-      "fileHash": "<fileHash1>"
+      "fileHash": "<fileHash1>",
+      "stats": {
+        "totalMolecules": 2,
+        "totalAtoms": 27,
+        "atomTypeCounts": [
+          { "symbol": "C", "count": 12 },
+          { "symbol": "H", "count": 13 },
+          { "symbol": "O", "count": 2 }
+        ]
+      }
     },
     {
       "file": "molecule2.pdb",
-      "fileHash": "<fileHash2>"
+      "fileHash": "<fileHash2>",
+      "stats": {
+        "totalMolecules": 1,
+        "totalAtoms": 1452,
+        "atomTypeCounts": [
+          { "symbol": "C", "count": 912 },
+          { "symbol": "N", "count": 248 },
+          { "symbol": "O", "count": 280 },
+          { "symbol": "S", "count": 12 }
+        ]
+      }
     }
   ]
 }
 ```
+
+Each entry also contains `stats` with the number of molecules and atoms in the file and the count of each element.
 ## 3. Get suitable methods for uploaded files
 Once the files are uploaded, ACC III can filter the method catalogue and return only methods that are suitable for all provided structures. Suitability is evaluated from the uploaded content, including the `permissiveTypes` setting. The response contains the list of suitable methods and, for each method, the parameter sets that can be used with the supplied files.
 

@@ -13,7 +13,8 @@ import { SequenceView } from "molstar/lib/commonjs/mol-plugin-ui/sequence";
 import { HTMLAttributes, useEffect, useState } from "react";
 import { combineLatest } from "rxjs";
 
-import { Busy, BusySize } from "../shared/busy";
+import { Busy } from "../shared/busy";
+import { BusySize } from "../shared/busy-size";
 import { Card } from "../ui/card";
 import { MolstarColorScale } from "./controls/color-scale";
 
@@ -29,7 +30,6 @@ export const MolstarViewer = ({
   const context = useControlsContext(molstar);
 
   const [isLoading, setIsLoading] = useState(true);
-  const [maxCharge, setMaxCharge] = useState<number | undefined>(undefined);
   const molstarContext = useMolstarContext();
   const showControls = useBehavior(molstarContext.layout.showControls);
   const isExpanded = useBehavior(molstarContext.layout.isExpanded);
@@ -43,11 +43,8 @@ export const MolstarViewer = ({
     return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const coloringType = context.get.coloringType;
-    const maxValue = context.get.maxValue;
-    setMaxCharge(coloringType === "charges" ? maxValue : undefined);
-  }, [context.get.coloringType, context.get.maxValue]);
+  const maxCharge =
+    context.get.coloringType === "charges" ? context.get.maxValue : undefined;
 
   return (
     <Card

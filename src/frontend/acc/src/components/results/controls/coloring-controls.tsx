@@ -11,12 +11,7 @@ import { useControlsContext } from "@acc/lib/hooks/contexts/use-controls-context
 import MolstarPartialCharges from "@acc/lib/viewer/viewer";
 import { HTMLAttributes, useEffect } from "react";
 
-export const molstarColoringTypes = [
-  "structure",
-  "charges",
-] as const;
-
-export type MolstarColoringType = (typeof molstarColoringTypes)[number];
+export type MolstarColoringType = "structure" | "charges";
 
 export type MolstarColoringControlsProps = {
   molstar: MolstarPartialCharges;

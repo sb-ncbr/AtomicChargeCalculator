@@ -1,5 +1,8 @@
 services:
   nginx:
+    build:
+      args:
+        - VITE_BASE_API_URL=http://localhost:8080/api/v1
     ports:
       - "8080:80"
   db:
@@ -20,11 +23,3 @@ services:
       OIDC_CLIENT_ID: client-id
       OIDC_BASE_URL: http://localhost:8000
       OIDC_REDIRECT_URL: http://localhost:8000
-  web:
-    build:
-      args:
-        - VITE_BASE_API_URL=http://localhost:8080/api/v1
-    environment:
-      NODE_ENV: development
-    ports:
-      - "3000:3000"

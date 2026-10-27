@@ -8,6 +8,7 @@ class UploadResponse(BaseResponseSchema):
 
     file: str
     file_hash: str
+    stats: MoleculeSetStats
 
 
 class FileResponse(BaseResponseSchema):

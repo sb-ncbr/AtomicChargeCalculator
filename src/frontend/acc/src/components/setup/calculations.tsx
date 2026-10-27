@@ -2,7 +2,7 @@ import { SetupFormType } from "@acc/components/setup/setup";
 import { cn } from "@acc/lib/utils";
 import { X } from "lucide-react";
 import { HTMLAttributes } from "react";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 
 import { HoverDetailsList } from "../shared/hover-details";
 import { Badge } from "../ui/badge";
@@ -13,7 +13,10 @@ export type CalculationsProps = HTMLAttributes<HTMLElement>;
 
 export const Calculations = ({ className, ...props }: CalculationsProps) => {
   const form = useFormContext<SetupFormType>();
-  const calculations = form.watch("computations");
+  const calculations = useWatch({
+    control: form.control,
+    name: "computations",
+  });
 
   const removeFromCalculaions = (index: number) => {
     const computations = form.getValues("computations");

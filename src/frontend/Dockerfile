@@ -15,15 +15,9 @@ RUN echo "VITE_BASE_API_URL=${VITE_BASE_API_URL}" > .env.production
 
 RUN pnpm build
 
-FROM node:26.10.0-slim
-WORKDIR /app
+# The edge Nginx serves the built frontend; its configuration is mounted by Compose.
+FROM nginx:1.31.6
 
-RUN npm install -g serve@14.2.6
+RUN rm -rf /usr/share/nginx/html/*
 
-COPY --from=builder /app/dist ./dist
-
-EXPOSE 3000
-
-USER node
-
-CMD ["serve", "-s", "dist"]
+COPY --from=builder /app/dist /usr/share/nginx/html

@@ -30,6 +30,10 @@ export const MolstarViewControls = ({
   computationId,
   molstar,
 }: MolstarViewControlsProps) => {
+  // isDefaultApplicable() reads Mol* state that changes when another structure
+  // is loaded into the same viewer, so it must be re-evaluated on every render.
+  "use no memo";
+
   const context = useControlsContext(molstar);
 
   const initializeView = async () => {

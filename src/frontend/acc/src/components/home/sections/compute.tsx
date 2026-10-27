@@ -32,7 +32,7 @@ import z from "zod";
 
 const computeSchema = z.object({
   files: z
-    .instanceof(FileList, { message: "Files are required." })
+    .instanceof(FileList, { error: "Files are required." })
     .refine((files) => files.length > 0),
   settings: z.object({
     readHetatm: z.boolean(),

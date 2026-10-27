@@ -1,5 +1,5 @@
 import { MolstarContext } from "@acc/lib/contexts/molstar-context";
-import { useContext, useEffect, useRef } from "react";
+import { useContext, useEffect, useState } from "react";
 import { BehaviorSubject } from "rxjs";
 
 export type MolstarContextHookType = {
@@ -17,27 +17,26 @@ export const useMolstarContext = (): MolstarContextHookType => {
     throw Error("Molstar context is null.");
   }
 
-  const isFullScreenRef = useRef<BehaviorSubject<boolean>>(
-    new BehaviorSubject<boolean>(
-      context.plugin?.layout.state.expandToFullscreen ?? false
-    )
+  const [fullScreenSubject] = useState(
+    () =>
+      new BehaviorSubject<boolean>(
+        context.plugin?.layout.state.expandToFullscreen ?? false
+      )
   );
-  const isExpandedRef = useRef<BehaviorSubject<boolean>>(
-    new BehaviorSubject<boolean>(
-      context.plugin?.layout.state.isExpanded ?? false
-    )
+  const [isExpandedSubject] = useState(
+    () =>
+      new BehaviorSubject<boolean>(
+        context.plugin?.layout.state.isExpanded ?? false
+      )
   );
-  const showControlsRef = useRef<BehaviorSubject<boolean>>(
-    new BehaviorSubject<boolean>(
-      context.plugin?.layout.state.showControls ?? false
-    )
+  const [showControlsSubject] = useState(
+    () =>
+      new BehaviorSubject<boolean>(
+        context.plugin?.layout.state.showControls ?? false
+      )
   );
 
   useEffect(() => {
-    const fullScreenSubject = isFullScreenRef.current;
-    const isExpandedSubject = isExpandedRef.current;
-    const showControlsSubject = showControlsRef.current;
-
     const subscription = context.plugin?.layout.events.updated.subscribe(() => {
       fullScreenSubject.next(
         context.plugin?.layout.state.expandToFullscreen ?? false
@@ -51,13 +50,13 @@ export const useMolstarContext = (): MolstarContextHookType => {
     return () => {
       subscription?.unsubscribe();
     };
-  }, [context]);
+  }, [context, fullScreenSubject, isExpandedSubject, showControlsSubject]);
 
   return {
     layout: {
-      isFullScreen: isFullScreenRef.current,
-      isExpanded: isExpandedRef.current,
-      showControls: showControlsRef.current,
+      isFullScreen: fullScreenSubject,
+      isExpanded: isExpandedSubject,
+      showControls: showControlsSubject,
     },
   };
 };

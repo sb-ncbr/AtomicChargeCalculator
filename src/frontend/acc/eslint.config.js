@@ -91,7 +91,7 @@ export default tseslint.config(
       "@typescript-eslint/no-floating-promises": "error",
       "@typescript-eslint/no-non-null-assertion": "error",
 
-      "no-console": "warn",
+      "no-console": ["warn", { allow: ["warn", "error"] }],
       "no-await-in-loop": "warn",
       "no-param-reassign": "warn",
       "no-trailing-spaces": "warn",

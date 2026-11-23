@@ -430,16 +430,11 @@ async def calculate_charges(
 
     try:
         io_service.ensure_file_hashes_exist(data.file_hashes, user_id)
-        io_service.prepare_inputs(user_id, computation_id, data.file_hashes)
 
         file_hashes = data.file_hashes
         if not file_hashes:
             # get all files if non provided and computation has already been set up
-            inputs_path = io_service.get_inputs_path(computation_id, user_id)
-            file_hashes = [
-                io_service.parse_filename(file)[0]
-                for file in io_service.listdir(inputs_path)
-            ]
+            file_hashes = io_service.get_input_hashes(computation_id, user_id)
 
         if not file_hashes:
             # no files found and provided
@@ -448,7 +443,8 @@ async def calculate_charges(
                 detail="No file hashes provided.",
             )
 
-        # Duplicates are calculated once; the files keep the order of the request.
+        # Duplicates are calculated once. The order of the request decides which file keeps
+        # a molecule name that another file has too; a set's order differs between processes.
         file_hashes = list(dict.fromkeys(file_hashes))
 
         total_size = sum(
@@ -486,6 +482,10 @@ async def calculate_charges(
             configs = [
                 CalculationConfigDto(method=method_name, parameters=parameters_name)
             ]
+
+        # Only now: files of a request that is rejected, for its size or because no method
+        # suits them, do not become inputs of the computation.
+        io_service.prepare_inputs(user_id, computation_id, data.file_hashes)
 
         io_service.change_computation_state(
             user_id, computation_id, CalculationState.CALCULATING

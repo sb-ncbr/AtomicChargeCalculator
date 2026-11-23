@@ -126,10 +126,7 @@ class ChargeService:
                 settings = AdvancedSettingsDto()
 
             if file_hashes is None:
-                workdir = self.io.get_inputs_path(computation_id, user_id)
-                file_hashes = [
-                    self.io.parse_filename(file)[0] for file in self.io.listdir(workdir)
-                ]
+                file_hashes = self.io.get_input_hashes(computation_id, user_id)
 
             return await self._find_suitable_methods(file_hashes, settings, user_id)
         except Exception as e:
@@ -244,8 +241,12 @@ class ChargeService:
         file_path: str,
         selection: Selection = "all",
         permissive_types: bool = False,
+        taken_names: frozenset[str] = frozenset(),
     ) -> Molecules:
-        """Load molecules from a file"""
+        """Load molecules from a file
+
+        taken_names: molecule names, in lower case, that other files of the computation use.
+        """
         try:
             self.logger.info(f"Loading molecules from file {file_path}.")
             molecules = await self._run_in_executor(
@@ -253,6 +254,7 @@ class ChargeService:
                 file_path,
                 selection,
                 permissive_types,
+                taken_names,
             )
 
             return molecules
@@ -282,10 +284,15 @@ class ChargeService:
                 under `calculations`, the failed ones under `failures`.
         """
 
+        files = list(dict.fromkeys(h for file_hashes in data.values() for h in file_hashes))
+        names_by_file = (
+            await self._names_by_file(user_id, settings, files) if len(files) > 1 else {}
+        )
+
         calculations = await asyncio.gather(
             *[
                 self._calculate_charges(
-                    user_id, computation_id, settings, config, file_hashes
+                    user_id, computation_id, settings, config, file_hashes, names_by_file
                 )
                 for config, file_hashes in data.items()
             ],
@@ -294,6 +301,69 @@ class ChargeService:
 
         return calculations
 
+    def _stored_file(self, workdir: str, file_hash: str) -> str | None:
+        """The name under which the file of the hash is stored, if it is."""
+
+        return next(
+            (
+                file
+                for file in self.io.listdir(workdir)
+                if self.io.parse_filename(file)[0] == file_hash
+            ),
+            None,
+        )
+
+    async def _names_by_file(
+        self, user_id: str | None, settings: AdvancedSettingsDto, file_hashes: list[str]
+    ) -> dict[str, frozenset[str]]:
+        """The molecule names of each file, in lower case, in the order of the files.
+
+        The viewer files of a computation are named by molecule in one directory, and its
+        charges are collected by molecule name, so a molecule named like one of an earlier
+        file is named "<name>_0", ... Each file is read once more for that, before the
+        calculations, so that every configuration of a file gets the same names.
+        """
+
+        workdir = self.io.get_file_storage_path(user_id)
+        taken: set[str] = set()
+        names_by_file: dict[str, frozenset[str]] = {}
+        for file_hash in file_hashes:
+            names_by_file[file_hash] = frozenset()
+            file_name = self._stored_file(workdir, file_hash)
+            if file_name is None:
+                continue
+            try:
+                async with self.semaphore:
+                    molecules = await self.read_molecules(
+                        os.path.join(workdir, file_name),
+                        settings.selection,
+                        settings.permissive_types,
+                        frozenset(taken),
+                    )
+            except Exception:  # noqa: BLE001 - its calculations say why it cannot be read
+                continue
+            names = frozenset(name.lower() for name in self.engine.molecule_names(molecules))
+            names_by_file[file_hash] = names
+            taken |= names
+        return names_by_file
+
+    @staticmethod
+    def _names_taken_before(
+        names_by_file: dict[str, frozenset[str]], file_hash: str
+    ) -> frozenset[str]:
+        """The molecule names, in lower case, of the files before the given one.
+
+        They are collected when a file is read, not kept for every file: together they
+        would take memory that grows with the square of the number of files.
+        """
+
+        taken: set[str] = set()
+        for other, names in names_by_file.items():
+            if other == file_hash:
+                break
+            taken |= names
+        return frozenset(taken)
+
     async def _calculate_charges(
         self,
         user_id: str | None,
@@ -301,8 +371,12 @@ class ChargeService:
         settings: AdvancedSettingsDto,
         config: CalculationConfigDto,
         file_hashes: list[str],
+        names_by_file: dict[str, frozenset[str]] | None = None,
     ) -> CalculationResultDto:
-        """Calculate charges for provided files."""
+        """Calculate charges for provided files.
+
+        names_by_file: the molecule names of each file of the computation, in lower case.
+        """
 
         self.logger.info(
             f"Calculating charges with method {config.method} and parameters {config.parameters}."
@@ -313,14 +387,7 @@ class ChargeService:
         async def process_file(
             file_hash: str, config: CalculationConfigDto
         ) -> CalculationDto | CalculationFailureDto | None:
-            file_name = next(
-                (
-                    file
-                    for file in self.io.listdir(workdir)
-                    if self.io.parse_filename(file)[0] == file_hash
-                ),
-                None,
-            )
+            file_name = self._stored_file(workdir, file_hash)
 
             if file_name is None:
                 self.logger.warn(
@@ -343,6 +410,7 @@ class ChargeService:
                         full_path,
                         settings.selection,
                         settings.permissive_types,
+                        self._names_taken_before(names_by_file or {}, file_hash),
                     )
 
                     warnings = await self._run_in_executor(self.engine.warnings, molecules)

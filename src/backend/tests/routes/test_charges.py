@@ -374,3 +374,44 @@ async def test_a_computation_before_chargefw_3_is_not_calculated_again():
     assert error.value.status_code == 400
     assert "left out HETATM records" in error.value.detail
     service.calculate_charges.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("rejection", ["too_large", "no_suitable_method"])
+async def test_files_of_a_rejected_request_do_not_become_inputs(rejection):
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, Mock
+
+    from api.v1.exceptions import BadRequestError
+    from api.v1.routes.charges import calculate_charges
+    from api.v1.schemas.charges import CalculateChargesRequest
+    from integrations.chargefw.base import ChargeCalculationError
+
+    request = Mock()
+    request.state.user = None
+    storage = Mock()
+    storage.get_calculation_set.return_value = SimpleNamespace(
+        advanced_settings=SimpleNamespace(selection="all", permissive_types=True)
+    )
+    service = Mock()
+    service.get_computation_suitable_methods = AsyncMock(
+        side_effect=ChargeCalculationError("Atom ID 'M14' is not a positive integer.", kind="x")
+    )
+    io = Mock()
+    io.max_file_size = 100
+    io.get_file_size.return_value = 1000 if rejection == "too_large" else 1
+
+    with pytest.raises(BadRequestError) as error:
+        await calculate_charges(
+            request,
+            CalculateChargesRequest(configs=[], file_hashes=["hash2"], computation_id="comp"),
+            Mock(),
+            response_format="charges",
+            charge_service=service,
+            storage_service=storage,
+            mmcif_service=Mock(),
+            io_service=io,
+        )
+
+    assert error.value.status_code == (413 if rejection == "too_large" else 400)
+    io.prepare_inputs.assert_not_called()

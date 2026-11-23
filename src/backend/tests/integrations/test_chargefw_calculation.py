@@ -58,6 +58,47 @@ def test_names_are_ascii_letters_and_digits_cut_and_unique():
     ]
 
 
+HASH = "0123456789abcdef" * 4
+
+
+def test_names_of_other_files_of_the_computation_are_not_repeated():
+    collection = chargefw.MoleculeCollection([molecule("2HU4"), molecule("ligand")])
+
+    assert molecule_names(collection, taken_names=frozenset({"2hu4", "ligand_0"})) == [
+        "2HU4_0",
+        "ligand",
+    ]
+
+
+def test_unnamed_molecules_are_named_by_the_uploaded_file(engine, tmp_path):
+    # Two SDF records with empty titles.
+    record = (
+        "\n  test\n\n"
+        "  1  0  0  0  0  0  0  0  0  0999 V2000\n"
+        "    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+        "M  END\n$$$$\n"
+    )
+    sdf = tmp_path / f"{HASH}_my ligands.sdf"
+    sdf.write_text(record * 2)
+
+    assert molecule_names(engine.molecules(str(sdf)).collection, str(sdf)) == [
+        "my_ligands",
+        "my_ligands_0",
+    ]
+
+
+def test_pdb_without_an_id_is_named_by_the_uploaded_file_not_the_stored_one(engine, tmp_path):
+    pdb = tmp_path / f"{HASH}_complex.pdb"
+    pdb.write_text(
+        "ATOM      1  CA  GLY A   1       0.000   0.000   0.000  1.00  0.00           C\nEND\n"
+    )
+    collection = engine.molecules(str(pdb)).collection
+
+    assert molecule_names(collection, str(pdb)) == ["complex"]
+    # Without a name and a file, the viewer file still gets a name.
+    assert molecule_names(chargefw.MoleculeCollection([molecule("")])) == ["molecule"]
+
+
 def test_names_are_unique_whatever_their_case():
     # ACC writes "<name in lower case>.fw2.cif" for each molecule.
     collection = chargefw.MoleculeCollection([molecule("water"), molecule("Water"), molecule("WATER")])

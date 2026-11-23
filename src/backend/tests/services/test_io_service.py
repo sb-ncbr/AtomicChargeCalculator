@@ -296,6 +296,8 @@ class TestIOService:
             patch.object(io_service, "get_file_storage_path", return_value=files_path),
         ):
             io_mock.listdir.return_value = [test_data["filename"]]
+            # A new computation, without a record of its inputs.
+            io_mock.path_exists.return_value = False
             with patch.object(
                 io_service, "parse_filename", return_value=(test_data["file_hash"], "test_file.txt")
             ):
@@ -318,6 +320,7 @@ class TestIOService:
             patch.object(io_service, "get_file_storage_path", return_value=files_path),
         ):
             io_mock.listdir.return_value = []
+            io_mock.path_exists.return_value = False
 
             io_service.prepare_inputs(user_id, computation_id, file_hashes)
 
@@ -661,3 +664,33 @@ class TestIOService:
 
         assert isinstance(io_service.max_file_size, int)
         assert isinstance(io_service.max_upload_size, int)
+
+
+def test_inputs_keep_the_order_of_the_request(io_service, io_mock):
+    a, b, c, removed = ("a" * 64, "b" * 64, "c" * 64, "d" * 64)
+    io_service.get_inputs_path = Mock(return_value="/comp/input")
+    io_service.get_computation_path = Mock(return_value="/comp")
+    io_mock.listdir.return_value = [f"{a}_one.sdf", f"{b}_two.sdf", f"{c}_three.sdf"]
+    # "b" was requested first, then "a"; "c" was prepared before the order was recorded.
+    io_mock.read.return_value = f"{b}\n{a}\n{b}\n{removed}\n"
+
+    assert io_service.get_input_hashes("comp") == [b, a, c]
+    io_mock.read.assert_called_once_with("/comp/.inputs")
+
+
+def test_inputs_are_recorded_once(io_service, io_mock):
+    a, b = ("a" * 64, "b" * 64)
+    io_service.get_inputs_path = Mock(return_value="/comp/input")
+    io_service.get_computation_path = Mock(return_value="/comp")
+    io_service.get_file_storage_path = Mock(return_value="/files")
+    io_mock.listdir.return_value = [f"{a}_one.sdf", f"{b}_two.sdf"]
+    io_mock.read.return_value = f"{a}\n"
+
+    io_service.prepare_inputs(None, "comp", [a, b, b])
+    io_mock.touch.assert_called_once_with("/comp/.inputs", f"{b}\n")
+
+    # A request with the inputs the computation has records nothing.
+    io_mock.touch.reset_mock()
+    io_mock.read.return_value = f"{a}\n{b}\n"
+    io_service.prepare_inputs(None, "comp", [a, b])
+    io_mock.touch.assert_not_called()

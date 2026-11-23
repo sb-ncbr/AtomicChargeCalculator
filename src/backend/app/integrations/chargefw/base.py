@@ -62,6 +62,7 @@ class ChargeEngine(ABC):
         file_path: str,
         selection: Selection = "all",
         permissive_types: bool = True,
+        taken_names: frozenset[str] = frozenset(),
     ) -> Molecules:
         """Load molecules from a file
 
@@ -69,10 +70,17 @@ class ChargeEngine(ABC):
             file_path (str): File path from which to load molecules.
             selection (Selection, optional): Atoms of PDB/mmCIF files to read. Defaults to "all".
             permissive_types (bool, optional): Use similar parameters for similar atom/bond types if no exact match is found. Defaults to True.
+            taken_names (frozenset[str], optional): Molecule names, in lower case, that other
+                files of the computation use; a molecule of this file gets another name.
 
         Returns:
             Molecules: Parsed molecules
         """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def molecule_names(self, molecules: Molecules) -> list[str]:
+        """ACC's name of each molecule: the key of its charges and the name of its viewer file."""
         raise NotImplementedError()
 
     @abstractmethod

@@ -305,6 +305,38 @@ class IOService:
                     f"Unable to create symlink from {src_path} to {dst_path}: {str(e)}"
                 )
 
+        # The directory does not keep the order of the request, which decides the names
+        # of molecules that several files have. Each input is recorded once.
+        recorded = set(self._recorded_input_hashes(computation_id, user_id))
+        new = [h for h in dict.fromkeys(file_hashes) if h not in recorded]
+        if new:
+            self.io.touch(
+                self._input_order_path(computation_id, user_id),
+                "".join(f"{file_hash}\n" for file_hash in new),
+            )
+
+    def _input_order_path(self, computation_id: str, user_id: str | None) -> str:
+        return str(Path(self.get_computation_path(computation_id, user_id)) / ".inputs")
+
+    def get_input_hashes(self, computation_id: str, user_id: str | None = None) -> list[str]:
+        """Hashes of the inputs of a computation, in the order they were requested.
+
+        Inputs of a computation prepared before ACC recorded the order follow, by hash, so
+        that their order is always the same.
+        """
+
+        inputs_path = self.get_inputs_path(computation_id, user_id)
+        present = {self.parse_filename(file)[0] for file in self.listdir(inputs_path)}
+
+        recorded = self._recorded_input_hashes(computation_id, user_id)
+        ordered = [file_hash for file_hash in recorded if file_hash in present]
+        return ordered + sorted(present - set(ordered))
+
+    def _recorded_input_hashes(self, computation_id: str, user_id: str | None) -> list[str]:
+        order_path = self._input_order_path(computation_id, user_id)
+        if not self.io.path_exists(order_path):
+            return []
+        return list(dict.fromkeys(self.io.read(order_path).split()))
 
     def ensure_file_hashes_exist(
         self, file_hashes: list[str], user_id: str | None = None

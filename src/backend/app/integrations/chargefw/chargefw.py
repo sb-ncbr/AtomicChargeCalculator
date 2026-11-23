@@ -84,6 +84,8 @@ class ChargeFWMolecules:
     parameter_matching: Literal["strict", "permissive"]
     file_path: str
     input_format: str
+    # ACC's name of each molecule, see molecule_names().
+    names: tuple[str, ...] = ()
 
 
 def _input_format(file_path: str) -> str:
@@ -114,23 +116,39 @@ def _components() -> chargefw.io.ComponentDictionary:
         return _load_components()
 
 
-def molecule_names(collection: chargefw.MoleculeCollection) -> list[str]:
+def molecule_names(
+    collection: chargefw.MoleculeCollection,
+    file_path: str | None = None,
+    taken_names: frozenset[str] = frozenset(),
+) -> list[str]:
     """ACC's molecule names, which it uses as keys, file names, and URL parameters.
 
     Every byte other than an ASCII letter or digit becomes "_", the name is cut at 80
     characters, and repeated names get "_0", "_1", ... ChargeFW keeps names as written,
     such as "2,4-dinitrophenol", which ACC names "2_4_dinitrophenol".
 
+    A molecule that the file does not name, an SDF or MOL2 record with an empty title or a
+    PDB file without an ID, is named by the uploaded file, without ACC's hash: ChargeFW names
+    such a PDB molecule by the stored file, "<hash>_<name>".
+
     Names are repeated whatever their case, as the viewer files have the name in lower case.
+    A name in taken_names, in lower case, is repeated too: the viewer files of all files of
+    a computation are in one directory.
     """
 
+    stored = Path(file_path).stem if file_path is not None else None
+    uploaded = _upload_name(stored) if stored is not None else ""
+
     names: list[str] = []
-    used: set[str] = set()
+    used: set[str] = set(taken_names)
     for molecule in collection:
+        original = molecule.name
+        if original in ("", stored):
+            original = uploaded
         name = "".join(
             chr(byte) if chr(byte).isascii() and chr(byte).isalnum() else "_"
-            for byte in molecule.name.encode()
-        )[:MAX_NAME_LENGTH]
+            for byte in original.encode()
+        )[:MAX_NAME_LENGTH] or "molecule"
 
         unique, count = name, 0
         while unique.lower() in used:
@@ -140,6 +158,15 @@ def molecule_names(collection: chargefw.MoleculeCollection) -> list[str]:
         used.add(unique.lower())
         names.append(unique)
     return names
+
+
+def _upload_name(stem: str) -> str:
+    """The name of an upload without the "<sha256>_" that ACC stores it under."""
+
+    digest, separator, name = stem.partition("_")
+    if separator and len(digest) == 64 and all(c in "0123456789abcdef" for c in digest):
+        return name
+    return stem
 
 
 def _check_atom_ids(collection: chargefw.MoleculeCollection) -> None:
@@ -263,7 +290,7 @@ def _output_reason(
         or index is None
         or not np.any(np.abs(charges[index]) > MAX_MMCIF_CHARGE)
     ):
-        return _reason(error.reason, index, molecules.collection)
+        return _reason(error.reason, index, molecules)
 
     molecule = names[index]
     out_of_range = next(
@@ -275,7 +302,7 @@ def _output_reason(
         None,
     )
     if out_of_range is None:
-        return _reason(error.reason, index, molecules.collection)
+        return _reason(error.reason, index, molecules)
 
     text = _sentence(out_of_range.message)
     if len(molecules.collection) > 1 and out_of_range.molecule is not None:
@@ -300,9 +327,7 @@ def _read_error(error: chargefw.ParseError) -> MoleculeReadError:
     return MoleculeReadError(_sentence(message), kind=error.kind)
 
 
-def _reason(
-    message: str, molecule_index: int | None, collection: chargefw.MoleculeCollection
-) -> str:
+def _reason(message: str, molecule_index: int | None, molecules: ChargeFWMolecules) -> str:
     """ChargeFW's reason as a sentence, naming the molecule when the file has several.
 
     ChargeFW gives the molecule and conformer as fields, not in the message; ACC reads only the
@@ -310,8 +335,8 @@ def _reason(
     """
 
     text = _sentence(message)
-    if molecule_index is not None and len(collection) > 1:
-        text = f"{molecule_names(collection)[molecule_index]}: {text}"
+    if molecule_index is not None and len(molecules.collection) > 1:
+        text = f"{molecules.names[molecule_index]}: {text}"
     return text
 
 
@@ -372,6 +397,7 @@ class ChargeFWLocal(ChargeEngine):
         file_path: str,
         selection: Selection = "all",
         permissive_types: bool = True,
+        taken_names: frozenset[str] = frozenset(),
     ) -> ChargeFWMolecules:
         input_format = _input_format(file_path)
         options = {}
@@ -396,7 +422,11 @@ class ChargeFWLocal(ChargeEngine):
             parameter_matching="permissive" if permissive_types else "strict",
             file_path=file_path,
             input_format=input_format,
+            names=tuple(molecule_names(collection, file_path, taken_names)),
         )
+
+    def molecule_names(self, molecules: ChargeFWMolecules) -> list[str]:
+        return list(molecules.names)
 
     def info(self, molecules: ChargeFWMolecules) -> dict:
         counts = Counter(
@@ -420,7 +450,7 @@ class ChargeFWLocal(ChargeEngine):
         of a residue that is in neither, such as a new ligand, have no bonds.
         """
 
-        names = molecule_names(molecules.collection)
+        names = list(molecules.names)
         return [
             _issue(issue, "import", names, index)
             for index, molecule in enumerate(molecules.collection)
@@ -506,7 +536,7 @@ class ChargeFWLocal(ChargeEngine):
             kind, message = issue
             raise ChargeCalculationError(message, kind=kind)
 
-        names = molecule_names(molecules.collection)
+        names = list(molecules.names)
 
         _check_structure(molecules)
 
@@ -531,14 +561,14 @@ class ChargeFWLocal(ChargeEngine):
                     "The method does not apply to the molecules.", kind=NOT_APPLICABLE
                 ) from e
             raise ChargeCalculationError(
-                _reason(issues[0].message, issues[0].molecule_index, molecules.collection),
+                _reason(issues[0].message, issues[0].molecule_index, molecules),
                 kind=issues[0].kind,
                 issues=[_issue(issue, "rejection", names) for issue in issues],
             ) from e
         except chargefw.NumericalFailureError as e:
             failure = e.result.failure
             raise ChargeCalculationError(
-                _reason(failure.message, failure.molecule_index, molecules.collection),
+                _reason(failure.message, failure.molecule_index, molecules),
                 kind=failure.kind,
                 issues=[_issue(failure, "failure", names)],
             ) from e

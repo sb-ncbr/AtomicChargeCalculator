@@ -161,7 +161,7 @@ class TestChargeService:
         result = await service.read_molecules(file_path, "polymers", True)
 
         assert result == molecules_mock
-        engine_mock.molecules.assert_called_once_with(file_path, "polymers", True)
+        engine_mock.molecules.assert_called_once_with(file_path, "polymers", True, frozenset())
         service.logger.info.assert_called_once_with(f"Loading molecules from file {file_path}.")
 
     @pytest.mark.asyncio
@@ -262,7 +262,7 @@ class TestChargeService:
         assert result.parameters["method1"][0] == param1
 
     @pytest.mark.asyncio
-    async def test_calculate_charges(self, service):
+    async def test_calculate_charges(self, service, engine_mock):
         """Test calculating charges."""
 
         computation_id = "comp123"
@@ -282,13 +282,25 @@ class TestChargeService:
         )
 
         service._calculate_charges = AsyncMock(return_value=result_dto)
+        engine_mock.molecule_names.return_value = ["2HU4"]
 
         result = await service.calculate_charges(computation_id, settings, data, user_id)
 
         assert result == [result_dto]
+        # The calculations get the names of each file; the second file is read with the
+        # name of the first one taken, so its molecule of that name gets another.
         service._calculate_charges.assert_called_once_with(
-            user_id, computation_id, settings, config, file_hashes
+            user_id,
+            computation_id,
+            settings,
+            config,
+            file_hashes,
+            {"hash1": frozenset({"2hu4"}), "hash2": frozenset({"2hu4"})},
         )
+        assert [call.args[3] for call in engine_mock.molecules.call_args_list] == [
+            frozenset(),
+            frozenset({"2hu4"}),
+        ]
         # The route writes configs.json once new and stored results are merged.
         service.io.store_configs.assert_not_called()
 
@@ -402,3 +414,32 @@ async def test_a_failed_configuration_does_not_stop_the_others(service, engine_m
     assert [w.kind for f in by_method["gdac"].failures for w in f.warnings] == [
         "unbonded_residue_atoms"
     ]
+
+
+@pytest.mark.asyncio
+async def test_one_file_is_read_only_for_its_calculations(service, engine_mock):
+    config = CalculationConfigDto(method="eqeq", parameters=None)
+    engine_mock.calculate_charges.return_value = Mock(charges={"mol": [0.0]}, warnings=[])
+
+    await service.calculate_charges("comp", AdvancedSettingsDto(), {config: ["hash1"]}, None)
+
+    assert engine_mock.molecules.call_count == 1
+    assert engine_mock.molecules.call_args.args[3] == frozenset()
+
+
+@pytest.mark.asyncio
+async def test_a_file_that_cannot_be_read_takes_no_names(service, engine_mock):
+    from integrations.chargefw.base import MoleculeReadError
+
+    engine_mock.molecules.side_effect = [
+        MoleculeReadError("broken", kind="malformed"),
+        Mock(),
+    ]
+    engine_mock.molecule_names.return_value = ["mol"]
+
+    names = await service._names_by_file(None, AdvancedSettingsDto(), ["hash1", "hash2"])
+
+    assert names == {"hash1": frozenset(), "hash2": frozenset({"mol"})}
+    # The second file is read with no names taken, and a third one with those of the second.
+    assert engine_mock.molecules.call_args.args[3] == frozenset()
+    assert service._names_taken_before({**names, "hash3": frozenset()}, "hash3") == {"mol"}

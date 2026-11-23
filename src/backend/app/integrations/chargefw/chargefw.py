@@ -32,6 +32,15 @@ from models.parameters import Parameters
 NON_MODEL_METHODS = frozenset({"formal", "dummy"})
 
 
+# ACC's wording of ChargeFW's method notes that mention method options; ACC runs every
+# method with its default options and does not offer the others.
+METHOD_NOTES = {
+    "peoe": "The formal charges of every bonded part must add up to zero.",
+    "mpeoe": "The formal charges of every bonded part must add up to zero.",
+    "qeq": "The hardness of hydrogen does not depend on its charge, so the equations are "
+    "solved once.",
+}
+
 # ACC's upload extensions and the ChargeFW reader for each.
 INPUT_FORMATS = {
     ".sdf": "sdf",
@@ -352,6 +361,7 @@ def _method(method: chargefw.Method) -> Method:
         publication=method.publication or None,
         type=method_type,
         has_parameters=len(method.parameter_sets) > 0,
+        notes=METHOD_NOTES.get(method.id, method.notes) or None,
     )
 
 

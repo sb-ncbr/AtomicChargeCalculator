@@ -28,7 +28,15 @@ export const Method = ({
         onMethodChange={onMethodChange}
       />
       <Separator className="my-4" />
-      <MethodPublication method={currentMethod} />
+      <div className="space-y-4">
+        <MethodPublication method={currentMethod} />
+        {currentMethod?.notes && (
+          <div>
+            <h4 className="text-sm font-bold">Notes</h4>
+            <p className="text-sm whitespace-pre-line">{currentMethod.notes}</p>
+          </div>
+        )}
+      </div>
     </Card>
   );
 };

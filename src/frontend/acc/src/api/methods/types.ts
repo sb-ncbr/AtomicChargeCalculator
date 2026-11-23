@@ -15,6 +15,7 @@ export type Method = {
   publication: string | null;
   type: MethodType;
   hasParameters: boolean;
+  notes?: string | null;
 };
 
 export type SuitableMethods = {

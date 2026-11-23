@@ -52,7 +52,7 @@ Automatic selection works in the same manner. After initial filtering described 
 
 ![setup](https://github.com/user-attachments/assets/e063b119-2547-416f-96ca-f0b35b308046)
 
-All the methods and parameters have direct links to the original publications. The theoretical background of the methods is summarised in the standalone [PDF document](https://acc.biodata.ceitec.cz/methods.pdf). For easy identification, the name of the parameters used in a publication is enclosed in brackets.
+All the methods and parameters have direct links to the original publications. The notes of a method say what to know before using it, such as which molecules it supports. The theoretical background of the methods is summarised in the standalone [PDF document](https://acc.biodata.ceitec.cz/methods.pdf). For easy identification, the name of the parameters used in a publication is enclosed in brackets.
 
 # Results
 
@@ -128,7 +128,7 @@ For programmatic access, the ACC III API can be used. Below, we demonstrate a ty
 Successful file uploads return file hashes that are then reused in later requests. Successful calculations have their own computation identifier (UUID), which can be used to poll the calculation state or download the final archive.
 
 ## 1. List available methods
-Use this endpoint to obtain all charge-calculation methods currently exposed by ACC III. Each method entry contains the public method name, its internal identifier, full name, publication reference, method type (`2D`, `3D`, or `other`), and information about whether the method requires a parameter set.
+Use this endpoint to obtain all charge-calculation methods currently exposed by ACC III. Each method entry contains the public method name, its internal identifier, full name, publication reference, method type (`2D`, `3D`, or `other`), information about whether the method requires a parameter set, and notes about the method, such as the molecules it supports.
 
 ```bash
 curl -X GET 'https://acc.biodata.ceitec.cz/api/v1/charges/methods/available' \
@@ -146,7 +146,8 @@ Response (truncated):
       "fullName": "Split-charge Equilibration with Parameterized Initial Charges",
       "publication": "10.1186/s13321-021-00528-w",
       "type": "3D",
-      "hasParameters": true
+      "hasParameters": true,
+      "notes": "The parameterized starting charges are shifted within every bonded part to add up to its formal charge."
     },
     {
       "name": "EEM",
@@ -154,7 +155,8 @@ Response (truncated):
       "fullName": "Electronegativity Equalization Method",
       "publication": "10.1021/ja00275a013",
       "type": "3D",
-      "hasParameters": true
+      "hasParameters": true,
+      "notes": null
     }
   ]
 }

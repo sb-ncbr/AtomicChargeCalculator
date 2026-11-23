@@ -34,6 +34,20 @@ def test_parameters_belong_to_their_method(engine):
     assert sqeqp[0] == "SQEqp_Schindler2021_CCD_gen"
 
 
+def test_method_notes_offer_nothing_acc_does_not_have(engine):
+    import chargefw
+
+    notes = {m.internal_name: m.notes for m in engine.get_available_methods()}
+
+    assert notes["formal"] == "Returns the formal charges of the input unchanged; not a charge model."
+    assert notes["dummy"] == "Returns zero for every atom; not a charge model."
+    assert notes["eem"] is None
+    # ACC runs every method with its default options and does not offer the others.
+    for method in chargefw.methods.values():
+        for option in method.options:
+            assert option not in (notes[method.id] or ""), (method.id, option)
+
+
 @pytest.mark.parametrize(
     "method,parameters,error",
     [

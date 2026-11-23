@@ -13,14 +13,20 @@ from models.calculation import (
     CalculationFailureDto,
     CalculationResultDto,
 )
-from models.issue import IssueDto
+from models.issue import FileIssueDto, IssueDto
 from models.molecule_info import MoleculeSetStats
 from models.method import Method
 from models.parameters import Parameters
 from models.setup import AdvancedSettingsDto, Selection, settings_for_calculation
 from models.suitable_methods import SuitableMethods
 
-from integrations.chargefw.base import UNEXPECTED_ERROR, ChargeEngine, EngineError, Molecules
+from integrations.chargefw.base import (
+    UNEXPECTED_ERROR,
+    ChargeEngine,
+    EngineError,
+    MethodAssessment,
+    Molecules,
+)
 
 from api.v1.constants import CHARGES_OUTPUT_EXTENSION
 
@@ -141,6 +147,7 @@ class ChargeService:
         """Helper method to find suitable methods for calculation."""
 
         suitable_methods = Counter()
+        warnings: list[FileIssueDto] = []
         workdir = self.io.get_file_storage_path(user_id)
 
         dir_contents = self.io.listdir(workdir)
@@ -161,12 +168,15 @@ class ChargeService:
                 settings.selection,
                 settings.permissive_types,
             )
-            methods: list[
-                tuple[Method, list[Parameters]]
-            ] = await self._run_in_executor(
+            assessment: MethodAssessment = await self._run_in_executor(
                 self.engine.get_suitable_methods, molecules
             )
-            for method, parameters in methods:
+            file_name = self.io.parse_filename(file)[1]
+            warnings.extend(
+                FileIssueDto(file=file_name, **issue.model_dump())
+                for issue in assessment.warnings
+            )
+            for method, parameters in assessment.methods:
                 if not parameters or len(parameters) == 0:
                     suitable_methods[(method,)] += 1
                 else:
@@ -194,7 +204,9 @@ class ChargeService:
         parameters_with_metadata = {
             method.internal_name: params for method, params in parameters.items()
         }
-        return SuitableMethods(methods=methods, parameters=parameters_with_metadata)
+        return SuitableMethods(
+            methods=methods, parameters=parameters_with_metadata, warnings=warnings
+        )
 
     async def get_available_parameters(self, method: str) -> list[Parameters]:
         """Get available parameters for charge calculation method."""

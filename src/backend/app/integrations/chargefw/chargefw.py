@@ -20,6 +20,7 @@ from integrations.chargefw.base import (
     PARAMETER_SET_REQUIRED,
     CalculatedCharges,
     ChargeCalculationError,
+    MethodAssessment,
     ChargeEngine,
     MoleculeReadError,
 )
@@ -487,13 +488,12 @@ class ChargeFWLocal(ChargeEngine):
             return None
         return _parameters(plan.parameter_set)
 
-    def get_suitable_methods(
-        self, molecules: ChargeFWMolecules
-    ) -> list[tuple[Method, list[Parameters]]]:
+    def get_suitable_methods(self, molecules: ChargeFWMolecules) -> MethodAssessment:
         """Applicable methods with their parameter sets, in the order ChargeFW tries them.
 
         The assessment lists the cutoff and cover variants of a method and parameter set
-        as separate plans; each pair is listed once.
+        as separate plans; each pair is listed once. Its warnings about the molecules, such
+        as "hydrogens_missing", are known here, before any calculation.
         """
 
         # No method can be calculated then; the reason is known before any calculation.
@@ -516,7 +516,14 @@ class ChargeFWLocal(ChargeEngine):
                 if entry not in parameters:
                     parameters.append(entry)
 
-        return list(suitable.values())
+        names = list(molecules.names)
+        return MethodAssessment(
+            methods=list(suitable.values()),
+            warnings=[
+                *self.warnings(molecules),
+                *(_issue(issue, "input", names) for issue in assessment.input_warnings),
+            ],
+        )
 
     def calculate_charges(
         self,

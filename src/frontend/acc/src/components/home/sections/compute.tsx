@@ -1,4 +1,5 @@
 import { handleApiError } from "@acc/api/base";
+import { FileWarning, isMissingHydrogens } from "@acc/api/compute/compute";
 import { AdvancedSettings as Settings } from "@acc/api/compute/types";
 import { UploadResponse } from "@acc/api/files/types";
 import { getSuitableMethodsForFiles } from "@acc/api/methods/methods";
@@ -18,7 +19,6 @@ import {
   PopoverTrigger,
 } from "@acc/components/ui/popover";
 import { Separator } from "@acc/components/ui/separator";
-import { useFileStatsContext } from "@acc/lib/hooks/contexts/use-file-stats-context";
 import { useComputationMutations } from "@acc/lib/hooks/mutations/use-calculations";
 import { useFileMutations } from "@acc/lib/hooks/mutations/use-files";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -44,18 +44,20 @@ type ComputeType = z.infer<typeof computeSchema>;
 const getMostSuitableMethod = async (
   fileHashes: string[],
   settings: Settings
-): Promise<MostSuitableMethod | null> => {
+): Promise<Pick<Suggestion, "method" | "warnings">> => {
   const suitableMethods = await getSuitableMethodsForFiles(
     fileHashes,
     settings
   );
   const method = suitableMethods.methods[0];
-  if (!method) {
-    return null;
-  }
   return {
-    method,
-    parameters: suitableMethods.parameters[method.internalName]?.[0],
+    method: method
+      ? {
+          method,
+          parameters: suitableMethods.parameters[method.internalName]?.[0],
+        }
+      : null,
+    warnings: suitableMethods.warnings,
   };
 };
 
@@ -64,6 +66,8 @@ type Suggestion = {
   request: string;
   // null when no method is suitable
   method: MostSuitableMethod | null;
+  // What ChargeFW warns about in the files, such as missing hydrogens.
+  warnings: FileWarning[];
   error: string | null;
 };
 
@@ -78,7 +82,6 @@ export const Compute = () => {
   const navigate = useNavigate();
   const { fileUploadMutation } = useFileMutations();
   const { computeMutation, setupMutation } = useComputationMutations();
-  const fileStatsContext = useFileStatsContext();
 
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadResponse, setUploadResponse] = useState<UploadResponse | null>(
@@ -102,14 +105,8 @@ export const Compute = () => {
     name: ["settings.selection", "settings.permissiveTypes"],
   });
 
-  // Compute and Setup need the finished upload, which also carries the file stats.
+  // Compute and Setup need the finished upload.
   const isUploaded = form.formState.isValid && uploadResponse !== null;
-  const missingHydrogens =
-    uploadResponse?.some(
-      ({ stats }) =>
-        (stats.atomTypeCounts.find(({ symbol }) => symbol === "H")?.count ??
-          0) === 0
-    ) ?? false;
 
   const onSubmit = async (data: ComputeType) => {
     if (uploadResponse === null) {
@@ -117,11 +114,6 @@ export const Compute = () => {
     }
 
     const compId = crypto.randomUUID();
-
-    fileStatsContext.set(
-      compId,
-      Object.fromEntries(uploadResponse.map((f) => [f.fileHash, f.stats]))
-    );
 
     await computeMutation.mutateAsync(
       {
@@ -175,10 +167,6 @@ export const Compute = () => {
       {
         onError: (e) => setUploadError(handleApiError(e)),
         onSuccess: (compId) => {
-          fileStatsContext.set(
-            compId,
-            Object.fromEntries(uploadResponse.map((f) => [f.fileHash, f.stats]))
-          );
           void navigate({
             pathname: "setup",
             search: createSearchParams({
@@ -210,9 +198,9 @@ export const Compute = () => {
       selection: watchSelection,
       permissiveTypes: watchPermissiveTypes,
     })
-      .then((method) => {
+      .then((suggested) => {
         if (isCurrent) {
-          setSuggestion({ request, method, error: null });
+          setSuggestion({ request, ...suggested, error: null });
         }
       })
       .catch((error: unknown) => {
@@ -220,6 +208,7 @@ export const Compute = () => {
           setSuggestion({
             request,
             method: null,
+            warnings: [],
             error: handleApiError(error),
           });
         }
@@ -269,7 +258,9 @@ export const Compute = () => {
             </p>
           </div>
 
-          {missingHydrogens && <MissingHydrogensWarning />}
+          {isMissingHydrogens(currentSuggestion?.warnings) && (
+            <MissingHydrogensWarning />
+          )}
           {uploadError !== null && (
             <ErrorAlert title="Upload error" description={uploadError} />
           )}

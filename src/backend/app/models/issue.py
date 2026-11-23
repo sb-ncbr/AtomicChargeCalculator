@@ -36,3 +36,9 @@ class IssueDto(BaseModel):
     model_config = ConfigDict(
         alias_generator=to_camel, populate_by_name=True, from_attributes=True
     )
+
+
+class FileIssueDto(IssueDto):
+    """An issue of one uploaded file."""
+
+    file: str

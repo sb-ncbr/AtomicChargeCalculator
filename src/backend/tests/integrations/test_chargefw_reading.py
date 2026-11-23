@@ -62,7 +62,9 @@ def test_info_counts_molecules_atoms_and_elements(engine):
 
 
 def test_suitable_methods_list_each_parameter_set_once_in_order(engine):
-    suitable = engine.get_suitable_methods(engine.molecules(PHENOLS))
+    assessment = engine.get_suitable_methods(engine.molecules(PHENOLS))
+    suitable = assessment.methods
+    assert assessment.warnings == []
 
     method, parameters = suitable[0]
     assert method.internal_name == "sqeqp"
@@ -121,6 +123,22 @@ HETATM    6  C1   01 A 101       8.000   0.000   0.000  1.00  0.00           C
 HETATM    7  O1   01 A 101       9.400   0.000   0.000  1.00  0.00           O
 END
 """
+
+
+def test_assessment_warns_before_any_calculation(engine, tmp_path):
+    # A structure without hydrogens and with a residue whose bonds nothing gives.
+    path = tmp_path / "hash_ligand.pdb"
+    path.write_text(PDB_WITH_NEW_LIGAND)
+
+    with pytest.warns(chargefw.InputWarning):
+        assessment = engine.get_suitable_methods(engine.molecules(str(path)))
+
+    assert [(w.kind, w.source, w.molecule) for w in assessment.warnings] == [
+        ("unbonded_residue_atoms", "import", "1TST"),
+        # 01 is a temporary ligand name, so its dictionary entry is not used.
+        ("component_entries_rejected", "import", "1TST"),
+        ("hydrogens_missing", "input", "1TST"),
+    ]
 
 
 def test_polymers_keep_their_modified_residues(engine, tmp_path):

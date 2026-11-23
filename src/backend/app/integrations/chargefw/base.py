@@ -46,6 +46,15 @@ class ChargeCalculationError(EngineError):
 
 
 @dataclass(frozen=True)
+class MethodAssessment:
+    """Methods with the parameter sets that apply to the molecules, and what the engine
+    warns about in the molecules before any calculation."""
+
+    methods: list[tuple[Method, list[Parameters]]]
+    warnings: list[IssueDto] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class CalculatedCharges:
     """Charges of each molecule and what the engine warns about in the calculation."""
 
@@ -143,14 +152,15 @@ class ChargeEngine(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def get_suitable_methods(self, molecules: Molecules) -> list[tuple[Method, list[Parameters]]]:
+    def get_suitable_methods(self, molecules: Molecules) -> MethodAssessment:
         """Get methods and parameters that are suitable for a given set of molecules.
 
         Args:
             molecules (Molecules): Set of molecules.
 
         Returns:
-            list[tuple[str, list[str]]]: List of tuples containing method name and parameters for that method.
+            MethodAssessment: The methods with their parameter sets, and the engine's
+            warnings about the molecules: those of reading them and of assessing them.
         """
         raise NotImplementedError()
 

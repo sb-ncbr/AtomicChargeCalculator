@@ -1,3 +1,5 @@
+from integrations.chargefw.base import MethodAssessment
+from models.issue import IssueDto
 from typing import Literal
 from unittest.mock import AsyncMock, Mock
 import pytest
@@ -243,10 +245,11 @@ class TestChargeService:
         param1 = get_parameters("param1")
         param2 = get_parameters("param2")
 
+        missing = IssueDto(kind="hydrogens_missing", message="no hydrogens", source="input")
         service._run_in_executor = AsyncMock(
             side_effect=[
-                [(method1, [param1]), (method2, [param2])],  # For first file
-                [(method1, [param1])],  # For second file
+                MethodAssessment(methods=[(method1, [param1]), (method2, [param2])]),
+                MethodAssessment(methods=[(method1, [param1])], warnings=[missing]),
             ]
         )
 
@@ -260,6 +263,8 @@ class TestChargeService:
         assert method1 in result.methods
         assert len(result.parameters["method1"]) == 1
         assert result.parameters["method1"][0] == param1
+        # The engine's warnings name their file.
+        assert [(w.file, w.kind) for w in result.warnings] == [("file2.pdb", "hydrogens_missing")]
 
     @pytest.mark.asyncio
     async def test_calculate_charges(self, service, engine_mock):

@@ -1,14 +1,17 @@
 import type {
   CalculationStatus,
+  FileWarning,
   UnavailableCharges,
 } from "@acc/api/compute/compute";
 
 import { handleApiError } from "@acc/api/base";
-import { getCalculationStatus } from "@acc/api/compute/compute";
+import {
+  getCalculationStatus,
+  isMissingHydrogens,
+} from "@acc/api/compute/compute";
 import { ScrollArea } from "@acc/components/ui/scroll-area";
 import { ControlsContextProvider } from "@acc/lib/contexts/controls-context";
 import { MolstarContextProvider } from "@acc/lib/contexts/molstar-context";
-import { useFileStatsContext } from "@acc/lib/hooks/contexts/use-file-stats-context";
 import { useComputationMutations } from "@acc/lib/hooks/mutations/use-calculations";
 import MolstarPartialCharges from "@acc/lib/viewer/viewer";
 import { useEffect, useRef, useState } from "react";
@@ -33,7 +36,6 @@ const STATUS_POLLING_INTERVAL_MS = 2 * 1000;
 export const Results = ({ computationId }: ResultsProps) => {
   const navigate = useNavigate();
   const { getMoleculesMutation } = useComputationMutations();
-  const statsContext = useFileStatsContext();
 
   const [molstar, setMolstar] = useState<MolstarPartialCharges>();
   const [molecules, setMolecules] = useState<string[]>([]);
@@ -41,6 +43,7 @@ export const Results = ({ computationId }: ResultsProps) => {
     useState<CalculationStatus>("CALCULATING");
   const [calculationError, setCalculationError] = useState<string | null>(null);
   const [unavailable, setUnavailable] = useState<UnavailableCharges[]>([]);
+  const [fileWarnings, setFileWarnings] = useState<FileWarning[]>([]);
 
   const [currentTypeId, setCurrentTypeId] = useState<number>(1);
   const [structure, setStructure] = useState<string>(molecules[0]);
@@ -94,6 +97,7 @@ export const Results = ({ computationId }: ResultsProps) => {
 
         if (status.status === "COMPLETED") {
           setUnavailable(status.unavailable ?? []);
+          setFileWarnings(status.warnings ?? []);
           void loadMolecules();
         }
 
@@ -163,7 +167,7 @@ export const Results = ({ computationId }: ResultsProps) => {
                   molstar={molstar}
                 />
               )}
-              {statsContext.isMissingHydrogens(computationId) && (
+              {isMissingHydrogens(fileWarnings) && (
                 <MissingHydrogensWarning className="w-[90%] max-w-content mx-auto" />
               )}
               {unavailable.length > 0 && (

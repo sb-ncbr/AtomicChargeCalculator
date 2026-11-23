@@ -1,3 +1,5 @@
+import { FileWarning } from "@acc/api/compute/compute";
+
 import { Parameters } from "../parameters/types";
 
 export const MethodTypes = {
@@ -21,6 +23,8 @@ export type Method = {
 export type SuitableMethods = {
   methods: Method[];
   parameters: Record<Method["internalName"], Parameters[]>;
+  // Everything ChargeFW warns about in the files as they will be calculated.
+  warnings: FileWarning[];
 };
 
 export type MostSuitableMethod = {

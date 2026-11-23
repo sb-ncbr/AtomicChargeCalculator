@@ -54,6 +54,10 @@ export interface FileWarning extends Issue {
   parameters?: string | null;
 }
 
+/** Whether ChargeFW warns that a molecule has carbon but no hydrogen atoms. */
+export const isMissingHydrogens = (warnings: FileWarning[] | undefined) =>
+  warnings?.some(({ kind }) => kind === "hydrogens_missing") ?? false;
+
 export interface CalculationStatusResponse {
   status: CalculationStatus;
   error?: string;

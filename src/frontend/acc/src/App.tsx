@@ -2,9 +2,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 
 import { AuthProvider } from "./lib/contexts/auth-provider";
-import { FileStatsContextProvider } from "./lib/contexts/file-stats-context";
-import { useFileStatsLocalStorage } from "./lib/hooks/use-file-stats-local-storage";
 import { Router } from "./router";
+
+// Former versions kept the element counts of uploaded files here to warn about missing
+// hydrogens; ChargeFW's warnings replaced them.
+localStorage.removeItem("acc_file_stats");
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,15 +18,11 @@ const queryClient = new QueryClient({
 });
 
 export const App = () => {
-  const fileStatsLocalStorage = useFileStatsLocalStorage();
-
   return (
     <QueryClientProvider client={queryClient}>
       <Toaster richColors />
       <AuthProvider>
-        <FileStatsContextProvider value={fileStatsLocalStorage}>
-          <Router />
-        </FileStatsContextProvider>
+        <Router />
       </AuthProvider>
     </QueryClientProvider>
   );

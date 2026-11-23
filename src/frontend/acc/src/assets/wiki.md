@@ -253,7 +253,7 @@ Note that, in web interface, ACC III automatically uses the first suitable metho
 ## 4. Calculate charges
 The calculation of partial atomic charges usually follows. Users provide calculation configurations, file hashes, and optional advanced settings. If `configs` is empty, ACC III automatically selects the most suitable method and parameters.
 
-Each configuration names a method and, if the method has parameters, a parameter set by its `internalName`. Parameter-set IDs changed when ACC III moved to [ChargeFW](https://github.com/sb-ncbr/chargefw): they no longer have a two-digit priority, so the former `SQEqp_10_Schindler2021_CCD_gen` is now `SQEqp_Schindler2021_CCD_gen`. List the current IDs with `/charges/parameters/<method>/available`.
+Each configuration names a method and, if the method has parameters, a parameter set by its `internalName`. A request with an unknown method or parameter set is rejected. Parameter-set IDs changed when ACC III moved to [ChargeFW](https://github.com/sb-ncbr/chargefw): they no longer have a two-digit priority, so the former `SQEqp_10_Schindler2021_CCD_gen` is now `SQEqp_Schindler2021_CCD_gen`. List the current IDs with `/charges/parameters/<method>/available`.
 
 ```bash
 curl -X POST 'https://acc.biodata.ceitec.cz/api/v1/charges/calculate' \

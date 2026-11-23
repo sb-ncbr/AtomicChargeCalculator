@@ -32,3 +32,19 @@ def test_parameters_belong_to_their_method(engine):
 
     sqeqp = [p.internal_name for p in engine.get_available_parameters("sqeqp")]
     assert sqeqp[0] == "SQEqp_Schindler2021_CCD_gen"
+
+
+@pytest.mark.parametrize(
+    "method,parameters,error",
+    [
+        ("sqeqp", "SQEqp_Schindler2021_CCD_gen", None),
+        ("eqeq", None, None),
+        ("nope", None, "Method 'nope' is not available."),
+        ("sqeqp", None, "Method sqeqp requires parameters."),
+        ("eqeq", "EEM_Baek1991", "Method eqeq has no parameters."),
+        ("sqeqp", "SQEqp_99_unknown", "Parameters 'SQEqp_99_unknown' are not available for method sqeqp."),
+        ("sqeqp", "EEM_Baek1991", "Parameters 'EEM_Baek1991' are not available for method sqeqp."),
+    ],
+)
+def test_config_errors_name_the_problem(engine, method, parameters, error):
+    assert engine.config_error(method, parameters) == error

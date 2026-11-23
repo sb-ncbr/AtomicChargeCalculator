@@ -58,6 +58,11 @@ class ChargeService:
         )
 
     # Method related operations
+    def config_error(self, config: CalculationConfigDto) -> str | None:
+        """Why a requested method and parameter set cannot be calculated, or None."""
+
+        return self.engine.config_error(config.method, config.parameters)
+
     def get_available_methods(self) -> list[Method]:
         """Get available methods for charge calculation."""
 

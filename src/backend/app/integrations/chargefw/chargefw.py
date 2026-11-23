@@ -428,6 +428,10 @@ class ChargeFWLocal(ChargeEngine):
             for issue in molecule.import_warnings
         ]
 
+    def config_error(self, method: str, parameters: str | None) -> str | None:
+        issue = _config_issue(method, parameters)
+        return issue[1] if issue is not None else None
+
     def get_available_methods(self) -> list[Method]:
         return [_method(method) for method in chargefw.methods.values()]
 

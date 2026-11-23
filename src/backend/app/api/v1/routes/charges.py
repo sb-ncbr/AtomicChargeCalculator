@@ -412,6 +412,14 @@ async def calculate_charges(
     if settings is None:
         settings = AdvancedSettingsDto()
 
+    # Requested methods and parameter sets must exist; such a request is rejected before
+    # anything is calculated.
+    errors = [
+        error for config in data.configs if (error := charge_service.config_error(config))
+    ]
+    if errors:
+        raise BadRequestError(status_code=status.HTTP_400_BAD_REQUEST, detail=" ".join(errors))
+
     try:
         io_service.ensure_file_hashes_exist(data.file_hashes, user_id)
         io_service.prepare_inputs(user_id, computation_id, data.file_hashes)

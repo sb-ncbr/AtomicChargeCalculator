@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
 from pydantic.json_schema import SkipJsonSchema
 
@@ -29,6 +29,14 @@ class CalculateChargesRequest(BaseRequestModel):
     configs: list[CalculationConfigDto]
     file_hashes: list[str]
     settings: AdvancedSettingsDto | None = None
+
+    @field_validator("configs")
+    @classmethod
+    def configs_name_a_method(cls, configs: list[CalculationConfigDto]) -> list[CalculationConfigDto]:
+        # An empty list asks ACC to choose; a configuration must name its method.
+        if any(not config.method for config in configs):
+            raise ValueError("Every configuration must name a method.")
+        return configs
 
     # exclude computation_id from docs
     computation_id: SkipJsonSchema[str | None] = Field(None, exclude=True)

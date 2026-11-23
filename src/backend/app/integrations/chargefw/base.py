@@ -93,6 +93,11 @@ class ChargeEngine(ABC):
         raise NotImplementedError()
 
     @abstractmethod
+    def config_error(self, method: str, parameters: str | None) -> str | None:
+        """Why a method and parameter set cannot be calculated, or None if they can."""
+        raise NotImplementedError()
+
+    @abstractmethod
     def get_available_methods(
         self,
     ) -> list[Method]:

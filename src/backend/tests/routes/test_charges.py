@@ -79,6 +79,17 @@ async def test_unavailable_charges_name_the_method_parameters_and_file():
     ]
 
 
+def test_a_configuration_must_name_a_method():
+    from api.v1.schemas.charges import CalculateChargesRequest
+    from pydantic import ValidationError
+
+    CalculateChargesRequest(configs=[], file_hashes=["hash1"])
+    with pytest.raises(ValidationError, match="must name a method"):
+        CalculateChargesRequest(
+            configs=[{"method": "eqeq"}, {"method": None}], file_hashes=["hash1"]
+        )
+
+
 def test_file_warnings_are_listed_once_per_file():
     from api.v1.routes.charges import _file_warnings
 
@@ -124,12 +135,48 @@ def test_file_warnings_are_listed_once_per_file():
     ]
 
 
+@pytest.mark.asyncio
+async def test_unknown_parameters_are_rejected_before_calculating():
+    from unittest.mock import Mock
+
+    from api.v1.exceptions import BadRequestError
+    from api.v1.routes.charges import calculate_charges
+    from api.v1.schemas.charges import CalculateChargesRequest
+
+    request = Mock()
+    request.state.user = None
+    storage = Mock()
+    storage.get_calculation_set.return_value = None
+    service = Mock()
+    service.config_error.return_value = "Parameters 'SQEqp_x' are not available for method sqeqp."
+    io = Mock()
+
+    with pytest.raises(BadRequestError) as error:
+        await calculate_charges(
+            request,
+            CalculateChargesRequest(
+                configs=[{"method": "sqeqp", "parameters": "SQEqp_x"}], file_hashes=["hash1"]
+            ),
+            Mock(),
+            response_format="charges",
+            charge_service=service,
+            storage_service=storage,
+            mmcif_service=Mock(),
+            io_service=io,
+        )
+
+    assert error.value.status_code == 400
+    assert "'SQEqp_x' are not available" in error.value.detail
+    io.prepare_inputs.assert_not_called()
+
+
 def failing_services():
     from unittest.mock import AsyncMock, Mock
 
     from models.calculation import CalculationFailureDto
 
     service = Mock()
+    service.config_error.return_value = None
     service.get_available_methods.return_value = []
     service.calculate_charges = AsyncMock(
         return_value=[

@@ -8,6 +8,7 @@ from models.calculation import Charges
 from models.issue import IssueDto
 from models.method import Method
 from models.parameters import Parameters
+from models.setup import Selection
 
 # Molecules read by an engine; only the engine that read them uses them.
 Molecules: TypeAlias = Any
@@ -59,16 +60,14 @@ class ChargeEngine(ABC):
     def molecules(
         self,
         file_path: str,
-        read_hetatm: bool = True,
-        ignore_water: bool = False,
+        selection: Selection = "all",
         permissive_types: bool = True,
     ) -> Molecules:
         """Load molecules from a file
 
         Args:
             file_path (str): File path from which to load molecules.
-            read_hetatm (bool, optional): Read HETATM records from PDB/mmCIF files. Defaults to True.
-            ignore_water (bool, optional): Discard water molecules from PDB/mmCIF files. Defaults to True.
+            selection (Selection, optional): Atoms of PDB/mmCIF files to read. Defaults to "all".
             permissive_types (bool, optional): Use similar parameters for similar atom/bond types if no exact match is found. Defaults to True.
 
         Returns:

@@ -99,8 +99,7 @@ def sample_molecule_set_stats():
 @pytest.fixture
 def sample_advanced_settings():
     return AdvancedSettingsDto(
-        read_hetatm=True,
-        ignore_water=False,
+        selection="all",
         permissive_types=True,
     )
 
@@ -108,8 +107,7 @@ def sample_advanced_settings():
 @pytest.fixture
 def sample_advanced_settings_entity():
     return AdvancedSettings(
-        read_hetatm=True,
-        ignore_water=False,
+        selection="all",
         permissive_types=True,
     )
 

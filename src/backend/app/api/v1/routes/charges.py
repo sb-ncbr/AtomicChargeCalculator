@@ -46,7 +46,7 @@ from api.v1.schemas.charges import (
     SuitableMethodsRequest,
 )
 
-from models.setup import AdvancedSettingsDto
+from models.setup import AdvancedSettingsDto, LegacySettingsError, settings_for_calculation
 
 from services.calculation_storage import CalculationStorageService
 from services.mmcif import MmCIFService
@@ -88,6 +88,7 @@ async def suitable_methods(
     Returns suitable methods for the provided computation.
 
         fileHashes: List of file hashes to get suitable methods for.
+        selection: Atoms of PDB/mmCIF files the charges will be calculated for, as in the settings of /calculate.
         permissiveTypes: Use similar parameters for similar atom/bond types if no exact match is found.
     """
     user_id = str(request.state.user.id) if request.state.user is not None else None
@@ -95,7 +96,9 @@ async def suitable_methods(
     try:
         io_service.ensure_file_hashes_exist(data.file_hashes, user_id)
         suitable = await charge_service.get_suitable_methods(
-            data.file_hashes, data.permissive_types, user_id
+            data.file_hashes,
+            AdvancedSettingsDto(selection=data.selection, permissive_types=data.permissive_types),
+            user_id,
         )
         return Response(data=suitable)
     except Exception as e:
@@ -200,6 +203,7 @@ async def best_parameters(
 
         methodName: Method name to get the best parameters for.
         fileHash: File hashes to get suitable methods for.
+        selection: Atoms of PDB/mmCIF files the charges will be calculated for, as in the settings of /calculate.
         permissiveTypes: Use similar parameters for similar atom/bond types if no exact match is found.
     """
 
@@ -220,7 +224,9 @@ async def best_parameters(
 
     try:
         parameters = await charge_service.get_best_parameters(
-            data.method_name, file_path, data.permissive_types
+            data.method_name,
+            file_path,
+            AdvancedSettingsDto(selection=data.selection, permissive_types=data.permissive_types),
         )
         return Response[Parameters](data=parameters)
     except Exception as e:
@@ -375,8 +381,10 @@ async def calculate_charges(
 
     settings:
 
-        readHetatm: Read HETATM records from PDB/mmCIF files.
-        ignoreWater: Discard water molecules from PDB/mmCIF files.
+        selection: Atoms of PDB/mmCIF files to calculate:
+            all: everything (default).
+            polymers-and-ligands: without water.
+            polymers: protein and nucleic acid chains, modified residues included.
         permissiveTypes: Use similar parameters for similar atom/bond types if no exact match is found.
 
     """
@@ -403,14 +411,14 @@ async def calculate_charges(
             detail="No file hashes provided.",
         )
 
-    settings = (
-        calculation_set.advanced_settings
-        if calculation_set is not None
-        else data.settings
-    )
-
-    if settings is None:
-        settings = AdvancedSettingsDto()
+    if calculation_set is not None:
+        # A stored computation is calculated with its own settings.
+        try:
+            settings = settings_for_calculation(calculation_set.advanced_settings)
+        except LegacySettingsError as e:
+            raise BadRequestError(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    else:
+        settings = data.settings or AdvancedSettingsDto()
 
     # Requested methods and parameter sets must exist; such a request is rejected before
     # anything is calculated.
@@ -567,6 +575,8 @@ async def computation_suitable_methods(
             user_id,
         )
         return Response(data=data)
+    except LegacySettingsError as e:
+        raise BadRequestError(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except EngineError as e:
         # Such as a file that cannot be read or shown; the engine says why.
         raise BadRequestError(

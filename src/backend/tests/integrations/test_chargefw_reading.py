@@ -84,17 +84,16 @@ def test_best_parameters(engine):
     assert engine.get_best_parameters(molecules, "eqeq") is None
 
 
-def test_settings_select_atoms_of_structures(engine, ions_cif):
-    def atom_count(read_hetatm, ignore_water):
-        molecules = engine.molecules(ions_cif, read_hetatm, ignore_water)
+def test_selection_chooses_atoms_of_structures(engine, ions_cif):
+    def atom_count(selection):
+        molecules = engine.molecules(ions_cif, selection)
         return sum(molecule.atom_count for molecule in molecules.collection)
 
-    assert atom_count(read_hetatm=True, ignore_water=False) == 5
-    assert atom_count(read_hetatm=True, ignore_water=True) == 2
+    assert atom_count("all") == 5
+    assert atom_count("polymers-and-ligands") == 2
 
     with pytest.raises(RuntimeError, match="no selected atoms"):
-        atom_count(read_hetatm=False, ignore_water=False)
-
+        atom_count("polymers")
 
 
 # Alanine and selenomethionine, a modified residue written as HETATM records.
@@ -124,11 +123,11 @@ END
 """
 
 
-def test_without_hetatm_records_polymers_keep_their_modified_residues(engine, tmp_path):
+def test_polymers_keep_their_modified_residues(engine, tmp_path):
     path = tmp_path / "hash_mse.pdb"
     path.write_text(PDB_WITH_MODIFIED_RESIDUE)
 
-    molecules = engine.molecules(str(path), read_hetatm=False)
+    molecules = engine.molecules(str(path), "polymers")
 
     assert sum(molecule.atom_count for molecule in molecules.collection) == 7
 
@@ -142,6 +141,17 @@ def test_bonds_the_file_lacks_come_from_the_component_dictionary(engine, tmp_pat
 
     assert engine.warnings(molecules) == []
     assert [5, 6, 1] in molecules.collection[0].bonds.tolist()
+
+
+def test_settings_of_former_versions_are_refused():
+    from pydantic import ValidationError
+
+    from app.models.setup import AdvancedSettingsDto
+
+    with pytest.raises(ValidationError, match="readHetatm"):
+        AdvancedSettingsDto.model_validate({"readHetatm": False})
+    with pytest.raises(ValidationError, match="selection"):
+        AdvancedSettingsDto.model_validate({"selection": "ligands"})
 
 
 def test_permissive_types_sets_parameter_matching(engine):

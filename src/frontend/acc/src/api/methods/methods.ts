@@ -1,3 +1,5 @@
+import { AdvancedSettings } from "@acc/api/compute/types";
+
 import { api } from "../base";
 import { ApiResponse } from "../types";
 import { Method, SuitableMethods } from "./types";
@@ -30,13 +32,14 @@ export const getSuitableMethods = async (
 
 export const getSuitableMethodsForFiles = async (
   fileHashes: string[],
-  permissiveTypes: boolean
+  settings: AdvancedSettings
 ): Promise<SuitableMethods> => {
   const response = await api.post<ApiResponse<SuitableMethods>>(
     `/charges/methods/suitable`,
     {
       fileHashes,
-      permissiveTypes,
+      selection: settings.selection,
+      permissiveTypes: settings.permissiveTypes,
     }
   );
 

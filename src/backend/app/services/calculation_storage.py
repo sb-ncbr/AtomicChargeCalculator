@@ -23,7 +23,7 @@ from db.repositories.calculation_set_repository import (
 )
 from db.repositories.moleculeset_stats_repository import MoleculeSetStatsRepository
 
-from models.setup import AdvancedSettingsDto
+from models.setup import AdvancedSettingsDto, StoredSettingsDto
 from db.repositories.advanced_settings_repository import AdvancedSettingsRepository
 from db.database import SessionManager
 from services.logging.base import LoggerBase
@@ -84,8 +84,8 @@ class CalculationStorageService:
                                 for stats_assoc in calculation_set.molecule_set_stats_associations
                             },
                             "configs": calculation_set.configs,
-                            "settings": AdvancedSettingsDto.model_validate(
-                                vars(calculation_set.advanced_settings)
+                            "settings": StoredSettingsDto.model_validate(
+                                calculation_set.advanced_settings
                             ),
                             "created_at": calculation_set.created_at,
                         }
@@ -225,8 +225,7 @@ class CalculationStorageService:
         settings_entity = self.advanced_settings_repository.get(session, settings)
         if settings_entity is None:
             settings_entity = AdvancedSettings(
-                ignore_water=settings.ignore_water,
-                read_hetatm=settings.read_hetatm,
+                selection=settings.selection,
                 permissive_types=settings.permissive_types,
             )
             self.advanced_settings_repository.store(session, settings_entity)

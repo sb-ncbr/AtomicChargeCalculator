@@ -26,6 +26,7 @@ from integrations.chargefw.base import (
 from models.issue import IssueDto, IssueSource
 from models.method import Method
 from models.parameters import Parameters
+from models.setup import Selection
 
 # Methods of type "other": they return the formal charges and zeros, they are not charge
 # models.
@@ -111,18 +112,6 @@ def _components() -> chargefw.io.ComponentDictionary:
 
     with _components_lock:
         return _load_components()
-
-
-def _selection(read_hetatm: bool, ignore_water: bool) -> str:
-    """ChargeFW's selection for ACC's settings.
-
-    Without HETATM records ChargeFW keeps the polymers, modified residues included: it
-    selects by the entities of the file, not by the record type.
-    """
-
-    if not read_hetatm:
-        return "polymers"
-    return "polymers-and-ligands" if ignore_water else "all"
 
 
 def molecule_names(collection: chargefw.MoleculeCollection) -> list[str]:
@@ -381,16 +370,16 @@ class ChargeFWLocal(ChargeEngine):
     def molecules(
         self,
         file_path: str,
-        read_hetatm: bool = True,
-        ignore_water: bool = False,
+        selection: Selection = "all",
         permissive_types: bool = True,
     ) -> ChargeFWMolecules:
         input_format = _input_format(file_path)
         options = {}
         if input_format in STRUCTURE_FORMATS:
-            # Only the first model is read.
+            # ChargeFW selects by the entities of the file, not by the record type, so
+            # modified residues of a polymer stay with it. Only the first model is read.
             options = {
-                "selection": _selection(read_hetatm, ignore_water),
+                "selection": selection,
                 "conformers": "first",
                 "components": _components(),
             }
@@ -656,7 +645,7 @@ def prepare_structure_for_viewer(block: gemmi.cif.Block) -> None:
     """Removes what ACC's viewer cannot show or Mol* shows worse.
 
     - Atom rows of the first model without a charge: other alternate locations, water or
-      HETATM records left out by the settings. ACC's viewer requires a charge for each atom
+      ligands left out by the selection. ACC's viewer requires a charge for each atom
       of the model it shows. Other models are kept.
     - `_chem_comp`: with it, Mol* shows the polymer of a PDB upload without cartoon and
       modified residues as ball-and-stick.

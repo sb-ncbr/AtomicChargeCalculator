@@ -6,7 +6,6 @@ skinparam Ranksep 50
 skinparam padding 2
 skinparam shadowing false
 skinparam backgroundColor transparent
-skinparam handwritten false
 skinparam ClassFontStyle bold
 skinparam ClassAttributeFontStyle   bold
 skinparam NoteFontStyle bold
@@ -74,8 +73,7 @@ entity atom_type_counts {
 entity advanced_settings {
     * id: uuid
     ---
-    read_hetatm: boolean
-    ignore_water: boolean
+    selection: varchar
     permissive_types: boolean
 }
 

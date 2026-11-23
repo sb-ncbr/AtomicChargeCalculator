@@ -11,7 +11,7 @@ from pydantic.alias_generators import to_camel
 from models.molecule_info import MoleculeSetStats
 
 from models.issue import IssueDto
-from models.setup import AdvancedSettingsDto
+from models.setup import StoredSettingsDto
 
 Charges = Dict[str, list[float]]
 
@@ -88,7 +88,7 @@ class CalculationSetDto(BaseModel):
     id: uuid.UUID
     calculations: list[CalculationDto]
     configs: list[CalculationConfigDto]
-    settings: AdvancedSettingsDto
+    settings: StoredSettingsDto
 
     model_config = ConfigDict(
         alias_generator=to_camel, populate_by_name=True, from_attributes=True
@@ -101,7 +101,7 @@ class CalculationSetPreviewDto(BaseModel):
     id: uuid.UUID
     files: dict[str, MoleculeSetStats]
     configs: list[CalculationConfigDto]
-    settings: AdvancedSettingsDto
+    settings: StoredSettingsDto
     created_at: datetime
 
     model_config = ConfigDict(

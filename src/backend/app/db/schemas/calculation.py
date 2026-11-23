@@ -137,14 +137,15 @@ class AdvancedSettings(Base):
     __tablename__ = "advanced_settings"
 
     id: Mapped[str] = mapped_column(sa.Uuid, primary_key=True, default=uuid.uuid4)
-    read_hetatm: Mapped[bool] = mapped_column(sa.Boolean, nullable=False)
-    ignore_water: Mapped[bool] = mapped_column(sa.Boolean, nullable=False)
+    # One of models.setup.StoredSelection: "without-hetatm" only for computations of ACC
+    # before ChargeFW 3.
+    selection: Mapped[str] = mapped_column(sa.String(32), nullable=False)
     permissive_types: Mapped[bool] = mapped_column(sa.Boolean, nullable=False)
 
     calculation_sets = relationship("CalculationSet", back_populates="advanced_settings")
     calculations = relationship("Calculation", back_populates="advanced_settings")
 
     def __repr__(self):
-        return f"""<AdvancedSettings id={self.id}, read_hetatm={self.read_hetatm}, ignore_water={self.ignore_water}, permissive_types={self.permissive_types}"""
+        return f"""<AdvancedSettings id={self.id}, selection={self.selection}, permissive_types={self.permissive_types}"""
 
-    __table_args__ = (sa.UniqueConstraint("read_hetatm", "ignore_water", "permissive_types"),)
+    __table_args__ = (sa.UniqueConstraint("selection", "permissive_types"),)

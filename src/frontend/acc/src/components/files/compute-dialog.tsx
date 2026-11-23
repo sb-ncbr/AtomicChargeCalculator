@@ -53,8 +53,7 @@ export const ComputeDialog = ({ files }: ComputeDialogProps) => {
       {
         fileHashes: files.map((file) => file.fileHash),
         settings: {
-          readHetatm: true,
-          ignoreWater: false,
+          selection: "all",
           permissiveTypes: true,
         },
       },

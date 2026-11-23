@@ -152,6 +152,11 @@ submodule in the server checkout and the `chargefw2-base:acc` image. Nothing use
 any more; the workflow does not remove them, so remove them by hand after the first
 deployment.
 
+The API container applies database migrations when it starts. The migration that
+introduces the `selection` setting replaces the `read_hetatm` and `ignore_water`
+columns of `advanced_settings`; back up the database before the first deployment
+that includes it.
+
 ## Logging maintenance
 
 After deployment, verify that website requests appear as JSON in

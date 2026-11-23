@@ -142,10 +142,12 @@ class TestChargeService:
         service.read_molecules = AsyncMock(return_value=molecules_mock)
         engine_mock.get_best_parameters.return_value = expected_params
 
-        result = await service.get_best_parameters(method, file_path)
+        settings = AdvancedSettingsDto(selection="polymers", permissive_types=False)
+        result = await service.get_best_parameters(method, file_path, settings)
 
         assert result == expected_params
-        service.read_molecules.assert_called_once_with(file_path, permissive_types=True)
+        # The file is read as a calculation with the settings reads it.
+        service.read_molecules.assert_called_once_with(file_path, "polymers", False)
         engine_mock.get_best_parameters.assert_called_once_with(molecules_mock, method)
 
     @pytest.mark.asyncio
@@ -156,10 +158,10 @@ class TestChargeService:
         molecules_mock = Mock()
         engine_mock.molecules.return_value = molecules_mock
 
-        result = await service.read_molecules(file_path, True, False, True)
+        result = await service.read_molecules(file_path, "polymers", True)
 
         assert result == molecules_mock
-        engine_mock.molecules.assert_called_once_with(file_path, True, False, True)
+        engine_mock.molecules.assert_called_once_with(file_path, "polymers", True)
         service.logger.info.assert_called_once_with(f"Loading molecules from file {file_path}.")
 
     @pytest.mark.asyncio
@@ -174,16 +176,11 @@ class TestChargeService:
         )
         service._find_suitable_methods = AsyncMock(return_value=mock_suitable_methods)
 
-        result = await service.get_suitable_methods(file_hashes, True, "user123")
+        settings = AdvancedSettingsDto(selection="polymers-and-ligands", permissive_types=True)
+        result = await service.get_suitable_methods(file_hashes, settings, "user123")
 
         assert result == mock_suitable_methods
-        hashes, settings, user_id = service._find_suitable_methods.call_args.args
-        assert (hashes, user_id) == (file_hashes, "user123")
-        assert settings.model_dump() == {
-            "read_hetatm": True,
-            "ignore_water": False,
-            "permissive_types": True,
-        }
+        service._find_suitable_methods.assert_called_once_with(file_hashes, settings, "user123")
         service.logger.info.assert_called_once_with(
             f"Getting suitable methods for file hashes '{file_hashes}'"
         )
@@ -221,7 +218,7 @@ class TestChargeService:
     ):
         """Suggestions read only the requested files, with the computation's settings."""
 
-        settings = AdvancedSettingsDto(read_hetatm=False, ignore_water=True, permissive_types=False)
+        settings = AdvancedSettingsDto(selection="polymers", permissive_types=False)
         calculation_storage_mock.get_calculation_set.return_value = None
         service._find_suitable_methods = AsyncMock()
 
@@ -253,14 +250,12 @@ class TestChargeService:
             ]
         )
 
-        settings = AdvancedSettingsDto(
-            read_hetatm=False, ignore_water=True, permissive_types=permissive_types
-        )
+        settings = AdvancedSettingsDto(selection="polymers", permissive_types=permissive_types)
         result = await service._find_suitable_methods(file_hashes, settings, user_id)
 
         assert len(result.methods) == 1
         assert [call.args[1:] for call in service.read_molecules.call_args_list] == [
-            (False, True, permissive_types)
+            ("polymers", permissive_types)
         ] * len(file_hashes)
         assert method1 in result.methods
         assert len(result.parameters["method1"]) == 1

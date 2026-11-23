@@ -3,7 +3,7 @@ from pydantic.alias_generators import to_camel
 from pydantic.json_schema import SkipJsonSchema
 
 from models.calculation import CalculationConfigDto
-from models.setup import AdvancedSettingsDto
+from models.setup import AdvancedSettingsDto, Selection
 
 
 class BaseRequestModel(BaseModel):
@@ -12,6 +12,7 @@ class BaseRequestModel(BaseModel):
 
 class SuitableMethodsRequest(BaseRequestModel):
     file_hashes: list[str]
+    selection: Selection = "all"
     permissive_types: bool = True
 
 
@@ -22,6 +23,7 @@ class StatsRequest(BaseRequestModel):
 class BestParametersRequest(BaseRequestModel):
     method_name: str
     file_hash: str
+    selection: Selection = "all"
     permissive_types: bool = True
 
 

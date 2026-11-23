@@ -282,7 +282,7 @@ def test_structure_viewer_file_keeps_the_upload_with_charged_atoms_of_the_first_
     out = tmp_path / "charges"
     out.mkdir()
 
-    molecules = engine.molecules(str(path), read_hetatm=True, ignore_water=True)
+    molecules = engine.molecules(str(path), selection="polymers-and-ligands")
     calculated = engine.calculate_charges(molecules, "formal", None, str(out))
 
     assert calculated.charges == {"ions": [2.0, 2.0]}
@@ -313,7 +313,7 @@ def test_structure_viewer_file_leaves_no_rows_of_atoms_it_removed(engine, tmp_pa
     out = tmp_path / "charges"
     out.mkdir()
 
-    molecules = engine.molecules(str(path), read_hetatm=True, ignore_water=True)
+    molecules = engine.molecules(str(path), selection="polymers-and-ligands")
     engine.calculate_charges(molecules, "formal", None, str(out))
 
     block = gemmi.cif.read(str(out / "ions.fw2.cif")).sole_block()
@@ -355,7 +355,7 @@ def test_viewer_file_compares_atom_ids_as_cif_values(engine, tmp_path):
     out = tmp_path / "charges"
     out.mkdir()
 
-    molecules = engine.molecules(str(path), read_hetatm=True, ignore_water=True)
+    molecules = engine.molecules(str(path), selection="polymers-and-ligands")
     engine.calculate_charges(molecules, "formal", None, str(out))
 
     block = gemmi.cif.read(str(out / "ions.fw2.cif")).sole_block()
@@ -373,7 +373,7 @@ def test_viewer_file_reads_tags_whatever_their_case(engine, tmp_path):
     out = tmp_path / "charges"
     out.mkdir()
 
-    molecules = engine.molecules(str(path), read_hetatm=True, ignore_water=True)
+    molecules = engine.molecules(str(path), selection="polymers-and-ligands")
     engine.calculate_charges(molecules, "formal", None, str(out))
 
     text = (out / "ions.fw2.cif").read_text()

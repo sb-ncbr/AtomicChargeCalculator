@@ -17,7 +17,7 @@ from models.issue import IssueDto
 from models.molecule_info import MoleculeSetStats
 from models.method import Method
 from models.parameters import Parameters
-from models.setup import AdvancedSettingsDto
+from models.setup import AdvancedSettingsDto, Selection, settings_for_calculation
 from models.suitable_methods import SuitableMethods
 
 from integrations.chargefw.base import UNEXPECTED_ERROR, ChargeEngine, EngineError, Molecules
@@ -78,10 +78,10 @@ class ChargeService:
     async def get_suitable_methods(
         self,
         file_hashes: list[str],
-        permissive_types: bool = True,
+        settings: AdvancedSettingsDto | None = None,
         user_id: str | None = None,
     ) -> SuitableMethods:
-        """Get suitable methods for charge calculation based on file hashes."""
+        """Get methods suitable for the files, read as a calculation with the settings reads them."""
 
         try:
             self.logger.info(
@@ -89,9 +89,7 @@ class ChargeService:
             )
 
             return await self._find_suitable_methods(
-                file_hashes,
-                AdvancedSettingsDto(permissive_types=permissive_types),
-                user_id,
+                file_hashes, settings or AdvancedSettingsDto(), user_id
             )
         except Exception as e:
             self.logger.error(
@@ -122,7 +120,7 @@ class ChargeService:
             )
 
             if calculation_set is not None:
-                settings = calculation_set.advanced_settings
+                settings = settings_for_calculation(calculation_set.advanced_settings)
 
             if settings is None:
                 settings = AdvancedSettingsDto()
@@ -163,8 +161,7 @@ class ChargeService:
             input_file = os.path.join(workdir, file)
             molecules = await self.read_molecules(
                 input_file,
-                settings.read_hetatm,
-                settings.ignore_water,
+                settings.selection,
                 settings.permissive_types,
             )
             methods: list[
@@ -219,12 +216,16 @@ class ChargeService:
             raise e
 
     async def get_best_parameters(
-        self, method: str, file_path: str, permissive_types: bool = True
+        self, method: str, file_path: str, settings: AdvancedSettingsDto | None = None
     ) -> Parameters | None:
-        """Get best parameters for charge calculation method."""
+        """Get best parameters of the method for the file, read as a calculation with the
+        settings reads it."""
 
+        settings = settings or AdvancedSettingsDto()
         try:
-            molecules = await self.read_molecules(file_path, permissive_types=permissive_types)
+            molecules = await self.read_molecules(
+                file_path, settings.selection, settings.permissive_types
+            )
 
             self.logger.info(f"Getting best parameters for method {method}.")
             parameters = await self._run_in_executor(
@@ -241,8 +242,7 @@ class ChargeService:
     async def read_molecules(
         self,
         file_path: str,
-        read_hetatm: bool = True,
-        ignore_water: bool = False,
+        selection: Selection = "all",
         permissive_types: bool = False,
     ) -> Molecules:
         """Load molecules from a file"""
@@ -251,8 +251,7 @@ class ChargeService:
             molecules = await self._run_in_executor(
                 self.engine.molecules,
                 file_path,
-                read_hetatm,
-                ignore_water,
+                selection,
                 permissive_types,
             )
 
@@ -342,8 +341,7 @@ class ChargeService:
                 try:
                     molecules = await self.read_molecules(
                         full_path,
-                        settings.read_hetatm,
-                        settings.ignore_water,
+                        settings.selection,
                         settings.permissive_types,
                     )
 

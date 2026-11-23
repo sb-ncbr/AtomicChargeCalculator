@@ -23,8 +23,7 @@ class AdvancedSettingsRepository:
 
         statement = select(AdvancedSettings).where(
             and_(
-                AdvancedSettings.ignore_water == settings.ignore_water,
-                AdvancedSettings.read_hetatm == settings.read_hetatm,
+                AdvancedSettings.selection == settings.selection,
                 AdvancedSettings.permissive_types == settings.permissive_types,
             )
         )

@@ -269,3 +269,108 @@ async def test_a_background_calculation_records_its_failure():
     state, note = io.change_computation_state.call_args.args[2:]
     assert state is CalculationState.FAILED
     assert "first.sdf: Boom." in note
+
+
+@pytest.mark.asyncio
+async def test_suggestions_read_the_files_with_the_selection_of_the_calculation():
+    from unittest.mock import AsyncMock, Mock
+
+    from api.v1.routes.charges import best_parameters, suitable_methods
+    from api.v1.schemas.charges import BestParametersRequest, SuitableMethodsRequest
+    from models.parameters import Parameters
+
+    request = Mock()
+    request.state.user = None
+    service = Mock()
+    service.get_suitable_methods = AsyncMock(return_value=None)
+    service.get_best_parameters = AsyncMock(
+        return_value=Parameters(
+            full_name="EEM", internal_name="EEM_x", publication="", method="eem", notes=""
+        )
+    )
+    service.get_available_methods.return_value = [Mock(internal_name="eem")]
+
+    await suitable_methods(
+        request,
+        SuitableMethodsRequest.model_validate(
+            {"fileHashes": ["hash1"], "selection": "polymers", "permissiveTypes": False}
+        ),
+        charge_service=service,
+        io_service=Mock(),
+    )
+    await best_parameters(
+        BestParametersRequest.model_validate(
+            {"methodName": "eem", "fileHash": "hash1", "selection": "polymers-and-ligands"}
+        ),
+        charge_service=service,
+        io_service=Mock(),
+    )
+
+    settings = service.get_suitable_methods.call_args.args[1]
+    assert (settings.selection, settings.permissive_types) == ("polymers", False)
+    settings = service.get_best_parameters.call_args.args[2]
+    assert (settings.selection, settings.permissive_types) == ("polymers-and-ligands", True)
+
+
+def test_settings_of_computations_before_chargefw_3_are_shown_but_not_calculated():
+    from types import SimpleNamespace
+
+    from pydantic import ValidationError
+
+    from models.setup import (
+        AdvancedSettingsDto,
+        LegacySettingsError,
+        StoredSettingsDto,
+        settings_for_calculation,
+    )
+
+    stored = SimpleNamespace(selection="without-hetatm", permissive_types=True)
+
+    assert StoredSettingsDto.model_validate(stored).selection == "without-hetatm"
+    with pytest.raises(LegacySettingsError, match="left out HETATM records"):
+        settings_for_calculation(stored)
+    with pytest.raises(ValidationError):
+        AdvancedSettingsDto(selection="without-hetatm")
+
+    current = SimpleNamespace(selection="polymers", permissive_types=False)
+    assert settings_for_calculation(current) == AdvancedSettingsDto(
+        selection="polymers", permissive_types=False
+    )
+
+
+@pytest.mark.asyncio
+async def test_a_computation_before_chargefw_3_is_not_calculated_again():
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    from api.v1.exceptions import BadRequestError
+    from api.v1.routes.charges import calculate_charges
+    from api.v1.schemas.charges import CalculateChargesRequest
+
+    request = Mock()
+    request.state.user = None
+    storage = Mock()
+    storage.get_calculation_set.return_value = SimpleNamespace(
+        advanced_settings=SimpleNamespace(selection="without-hetatm", permissive_types=True)
+    )
+    service, io = failing_services()
+
+    with pytest.raises(BadRequestError) as error:
+        await calculate_charges(
+            request,
+            CalculateChargesRequest(
+                configs=[{"method": "eem", "parameters": "EEM_example"}],
+                file_hashes=[],
+                computation_id="comp",
+            ),
+            Mock(),
+            response_format="charges",
+            charge_service=service,
+            storage_service=storage,
+            mmcif_service=Mock(),
+            io_service=io,
+        )
+
+    assert error.value.status_code == 400
+    assert "left out HETATM records" in error.value.detail
+    service.calculate_charges.assert_not_called()

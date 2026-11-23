@@ -7,9 +7,8 @@ Atomic Charge Calculator III (ACC III) is a web application that provides a user
 The main page offers a possibility to upload your own structures (in one of the supported formats: SDF, Mol2, PDB, and mmCIF).
 
 Clicking on the **Compute charges** button will automatically select the most appropriate method, execute the computation, and redirect to the Results page.
-**Setup computation** can be used for manually selecting the method and parameters. Additionally, there are three advanced settings to choose from:
-- `Read HETATM` - Read HETATM records from PDB/mmCIF files (enabled by default).
-- `Ignore Water` - Discard water molecules from PDB/mmCIF files (disabled by default).
+**Setup computation** can be used for manually selecting the method and parameters. Additionally, there are advanced settings to choose from:
+- `Atoms of PDB/mmCIF files` - Which atoms of structures are calculated: `All atoms` (default), `Without water`, which keeps ligands and ions, or `Polymers only`, the protein and nucleic acid chains. Modified residues, such as selenomethionine, belong to their chain and stay.
 - `Permissive Types` - Use similar parameters for similar atom/bond types if no exact match is found (enabled by default).
 
 ![compute](https://github.com/user-attachments/assets/f782d58e-a68a-48e1-a913-1fa5b76ea4c9)
@@ -213,7 +212,7 @@ Example response:
 
 Each entry also contains `stats` with the number of molecules and atoms in the file and the count of each element.
 ## 3. Get suitable methods for uploaded files
-Once the files are uploaded, ACC III can filter the method catalogue and return only methods that are suitable for all provided structures. Suitability is evaluated from the uploaded content, including the `permissiveTypes` setting. The response contains the list of suitable methods and, for each method, the parameter sets that can be used with the supplied files.
+Once the files are uploaded, ACC III can filter the method catalogue and return only methods that are suitable for all provided structures. Suitability is evaluated from the uploaded content, read with the `selection` and `permissiveTypes` settings of the calculation. The response contains the list of suitable methods and, for each method, the parameter sets that can be used with the supplied files.
 
 ```bash
 curl -X POST 'https://acc.biodata.ceitec.cz/api/v1/charges/methods/suitable' \
@@ -224,6 +223,7 @@ curl -X POST 'https://acc.biodata.ceitec.cz/api/v1/charges/methods/suitable' \
     "<fileHash1>",
     "<fileHash2>"
   ],
+  "selection": "all",
   "permissiveTypes": true
 }'
 ```
@@ -273,12 +273,13 @@ curl -X POST 'https://acc.biodata.ceitec.cz/api/v1/charges/calculate' \
     "<fileHash2>"
   ],
   "settings": {
-    "readHetatm": true,
-    "ignoreWater": false,
+    "selection": "all",
     "permissiveTypes": true
   }
 }'
 ```
+
+The `selection` setting chooses the atoms of PDB/mmCIF files: `all` (default), `polymers-and-ligands` (without water), or `polymers` (protein and nucleic acid chains with their modified residues). It replaces the former `readHetatm` and `ignoreWater` settings, which are refused. Computations stored before ACC III used ChargeFW 3 that left out HETATM records report the selection `without-hetatm`; their charges stay available, but they cannot be calculated again. Computations stored with `ignoreWater` report `polymers-and-ligands`; they left out only `HOH` residues, while `polymers-and-ligands` also leaves out other water, such as heavy water (`DOD`).
 
 Example response:
 ```json

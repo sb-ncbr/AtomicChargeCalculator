@@ -19,6 +19,9 @@ from services.logging.base import LoggerBase
 
 load_dotenv()
 
+# What users see for a computation that the API process did not finish.
+INTERRUPTED = "The calculation was interrupted, most likely because the server ran out of memory. Start it again; for a large structure, choose fewer methods at once."
+
 
 class IOService:
     """Service for handling file operations."""
@@ -378,6 +381,36 @@ class IOService:
                 pass
 
         self.io.touch(str(Path(charges_path) / state.value), note)
+
+    def fail_interrupted_computations(self) -> int:
+        """Marks the computations that are still calculating as failed; returns their count.
+
+        For the start of the API process: its calculations run in the process itself, so a
+        computation in this state then is one that a former process did not finish, such
+        as when it was killed for running out of memory. Its page would wait for good.
+        """
+
+        owners: list[str | None] = [None]
+        users_path = str(self.workdir / "user")
+        if self.io.path_exists(users_path):
+            owners += self.io.listdir(users_path)
+
+        count = 0
+        for user_id in owners:
+            computations_path = self.get_computations_path(user_id)
+            if not self.io.path_exists(computations_path):
+                continue
+            for computation_id in self.io.listdir(computations_path):
+                marker = (
+                    Path(self.get_charges_path(computation_id, user_id))
+                    / CalculationState.CALCULATING.value
+                )
+                if self.io.path_exists(str(marker)):
+                    self.change_computation_state(
+                        user_id, computation_id, CalculationState.FAILED, INTERRUPTED
+                    )
+                    count += 1
+        return count
 
     def get_computation_state(
         self, user_id: str | None, computation_id: str

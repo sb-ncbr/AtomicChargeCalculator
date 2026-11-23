@@ -13,7 +13,8 @@ python main.py || exit $?
 
 # use gunicorn with one worker: the limits on calculations running at once are kept in the
 # worker process, so with several workers each would allow that many. Calculations run in
-# threads of the worker and do not block its requests.
+# threads of the worker and do not block its requests. When the worker starts, it marks the
+# computations still calculating as failed, which is right only with one worker.
 # uvicorn_worker.UvicornWorker is used for async processing
 # setting timeout to 1 hour for long lasting computations
 # running on port 8000

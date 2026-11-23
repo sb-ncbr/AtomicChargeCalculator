@@ -56,6 +56,17 @@ def create_app() -> FastAPI:
 
     container.wire()
 
+    # Calculations run in this process, so those still marked as running were interrupted.
+    # This relies on the single worker of entrypoint.sh: another worker's would be running.
+    try:
+        interrupted = container.io_service().fail_interrupted_computations()
+        if interrupted:
+            container.logger_service().warn(
+                f"Marked {interrupted} interrupted computation(s) as failed."
+            )
+    except Exception as e:  # noqa: BLE001 - the API must start whatever the state of the storage
+        container.logger_service().error(f"Could not check for interrupted computations: {e}")
+
     app.add_middleware(LoggingMiddleware)
     app.add_middleware(UserLoaderMiddleware)
     app.add_middleware(

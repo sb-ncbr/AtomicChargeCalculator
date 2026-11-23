@@ -11,7 +11,7 @@ Clicking on the **Compute charges** button will automatically select the most ap
 - `Atoms of PDB/mmCIF files` - Which atoms of structures are calculated: `All atoms` (default), `Without water`, which keeps ligands and ions, or `Polymers only`, the protein and nucleic acid chains. Modified residues, such as selenomethionine, belong to their chain and stay.
 - `Permissive Types` - Use similar parameters for similar atom/bond types if no exact match is found (enabled by default).
 
-![compute](https://github.com/user-attachments/assets/f782d58e-a68a-48e1-a913-1fa5b76ea4c9)
+![compute](/help/compute.png)
 
 ## Input files notes
 The input file size is limited to 50 MB.
@@ -49,7 +49,7 @@ Based on the molecules provided (in all files), methods and parameters that are 
 
 Automatic selection works in the same manner. After initial filtering described above, the first suitable method with its first suitable parameter set is used. The order of preference is the same for every input; it starts with SQE+qp and EEM.
 
-![setup](https://github.com/user-attachments/assets/e063b119-2547-416f-96ca-f0b35b308046)
+![setup](/help/setup.png)
 
 All the methods and parameters have direct links to the original publications. The notes of a method say what to know before using it, such as which molecules it supports. The theoretical background of the methods is summarised in the standalone [PDF document](https://acc.biodata.ceitec.cz/methods.pdf). For easy identification, the name of the parameters used in a publication is enclosed in brackets.
 
@@ -63,7 +63,7 @@ Each method and parameter set is calculated on its own. When a calculation fails
 
 The page also warns about what [ChargeFW](https://github.com/sb-ncbr/chargefw) found in the input or in the charges: missing hydrogens, atoms of ligands or modified residues without bonds (their bonds are neither in the file nor in the Chemical Component Dictionary), charges that are probably wrong (atoms much closer than bonded atoms are, or charges far from the formal charges), and PQR or Mol2 files that are not in the download.
 
-![results-select](https://github.com/user-attachments/assets/a4c0d168-5d36-4d20-8921-f9ede2864c83)
+![results-select](/help/results-select.png)
 
 ## Visualisation modes
 ACC III features a fast Molstar viewer to visualise calculated charges. There are three standard modes the user can select – Balls and sticks, Cartoon, and Surface – see example (1F16):
@@ -120,7 +120,7 @@ Additionally, the user can select files and trigger a computation (similar to th
 
 # Calculation management
 The calculation management page allows you to view, download, and delete previous calculations. Calculations are also limited by quota. Hovering over calculation or file badges will show additional information.
-![calculation-management](https://github.com/user-attachments/assets/c0949ac3-51f5-4098-bea5-fd1d40cce1ba)
+![calculation-management](/help/calculation-management.png)
 
 # API
 

@@ -61,6 +61,8 @@ To switch between multiple structures or charges, the user can use the select bo
 
 Each method and parameter set is calculated on its own. When a calculation fails for a file, the page lists the charges that are not available with the reason, and shows the others. Charges beyond ±10 e cannot be shown; such a calculation is listed as not available, too.
 
+The page also warns about what [ChargeFW](https://github.com/sb-ncbr/chargefw) found in the input or in the charges: missing hydrogens, atoms of ligands or modified residues without bonds (their bonds are neither in the file nor in the Chemical Component Dictionary), charges that are probably wrong (atoms much closer than bonded atoms are, or charges far from the formal charges), and PQR or Mol2 files that are not in the download.
+
 ![results-select](https://github.com/user-attachments/assets/a4c0d168-5d36-4d20-8921-f9ede2864c83)
 
 ## Visualisation modes

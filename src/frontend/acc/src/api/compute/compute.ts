@@ -58,6 +58,10 @@ export interface FileWarning extends Issue {
 export const isMissingHydrogens = (warnings: FileWarning[] | undefined) =>
   warnings?.some(({ kind }) => kind === "hydrogens_missing") ?? false;
 
+/** Whether ChargeFW warns that the calculated charges are probably wrong. */
+export const isSuspiciousCharges = ({ kind }: FileWarning) =>
+  kind === "atoms_too_close" || kind === "charge_out_of_range";
+
 export interface CalculationStatusResponse {
   status: CalculationStatus;
   error?: string;

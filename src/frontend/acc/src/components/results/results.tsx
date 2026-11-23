@@ -8,6 +8,7 @@ import { handleApiError } from "@acc/api/base";
 import {
   getCalculationStatus,
   isMissingHydrogens,
+  isSuspiciousCharges,
 } from "@acc/api/compute/compute";
 import { ScrollArea } from "@acc/components/ui/scroll-area";
 import { ControlsContextProvider } from "@acc/lib/contexts/controls-context";
@@ -18,8 +19,11 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 
+import { MissingDownloadsWarning } from "../shared/alerts/missing-downloads-warning";
 import { MissingHydrogensWarning } from "../shared/alerts/missing-hydrogen-warning";
+import { SuspiciousChargesWarning } from "../shared/alerts/suspicious-charges-warning";
 import { UnavailableChargesWarning } from "../shared/alerts/unavailable-charges-warning";
+import { UnbondedAtomsWarning } from "../shared/alerts/unbonded-atoms-warning";
 import { Busy } from "../shared/busy";
 import { ErrorAlert } from "../shared/error-alert";
 import { MolstarColoringType } from "./controls/coloring-controls";
@@ -44,6 +48,16 @@ export const Results = ({ computationId }: ResultsProps) => {
   const [calculationError, setCalculationError] = useState<string | null>(null);
   const [unavailable, setUnavailable] = useState<UnavailableCharges[]>([]);
   const [fileWarnings, setFileWarnings] = useState<FileWarning[]>([]);
+  // The API lists every warning of ChargeFW with its kind; the page shows these.
+  const unbondedAtomsWarnings = fileWarnings.filter(
+    ({ kind }) => kind === "unbonded_residue_atoms"
+  );
+  // Atoms much too close, or charges far from the formal charges.
+  const suspiciousChargesWarnings = fileWarnings.filter(isSuspiciousCharges);
+  // PQR or MOL2 files that ChargeFW cannot write; the charges are calculated.
+  const missingDownloadsWarnings = fileWarnings.filter(
+    ({ source }) => source === "output"
+  );
 
   const [currentTypeId, setCurrentTypeId] = useState<number>(1);
   const [structure, setStructure] = useState<string>(molecules[0]);
@@ -169,6 +183,24 @@ export const Results = ({ computationId }: ResultsProps) => {
               )}
               {isMissingHydrogens(fileWarnings) && (
                 <MissingHydrogensWarning className="w-[90%] max-w-content mx-auto" />
+              )}
+              {suspiciousChargesWarnings.length > 0 && (
+                <SuspiciousChargesWarning
+                  warnings={suspiciousChargesWarnings}
+                  className="w-[90%] max-w-content mx-auto"
+                />
+              )}
+              {unbondedAtomsWarnings.length > 0 && (
+                <UnbondedAtomsWarning
+                  warnings={unbondedAtomsWarnings}
+                  className="w-[90%] max-w-content mx-auto"
+                />
+              )}
+              {missingDownloadsWarnings.length > 0 && (
+                <MissingDownloadsWarning
+                  warnings={missingDownloadsWarnings}
+                  className="w-[90%] max-w-content mx-auto"
+                />
               )}
               {unavailable.length > 0 && (
                 <UnavailableChargesWarning

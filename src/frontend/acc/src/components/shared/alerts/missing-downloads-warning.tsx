@@ -3,6 +3,7 @@ import type { FileWarning } from "@acc/api/compute/compute";
 import { HTMLAttributes, HTMLElementType } from "react";
 
 import { WarningAlert } from "../warning-alert";
+import { LearnMore } from "./learn-more";
 
 export type MissingDownloadsWarningProps = {
   warnings: FileWarning[];
@@ -28,7 +29,8 @@ export const MissingDownloadsWarning = ({
       description={
         <>
           The charges are calculated, but these files cannot be written and are
-          not in the download:
+          not in the download.{" "}
+          <LearnMore entry="Files not available for download" />
           <ul className="list-disc ml-4 mt-1">
             {reasons.map((reason) => (
               <li key={reason}>{reason}</li>

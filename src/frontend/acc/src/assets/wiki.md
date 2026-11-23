@@ -61,7 +61,7 @@ To switch between multiple structures or charges, the user can use the select bo
 
 Each method and parameter set is calculated on its own. When a calculation fails for a file, the page lists the charges that are not available with the reason, and shows the others; when all of them fail, the computation fails with the reasons. Charges beyond ±10 e cannot be shown; such a calculation is listed as not available, too.
 
-The page also warns about what [ChargeFW](https://github.com/sb-ncbr/chargefw) found in the input or in the charges: missing hydrogens, atoms of ligands or modified residues without bonds (their bonds are neither in the file nor in the Chemical Component Dictionary), charges that are probably wrong (atoms much closer than bonded atoms are, or charges far from the formal charges), and PQR or Mol2 files that are not in the download.
+The page also warns about problems found in the input or in the charges, such as missing hydrogens, atoms without bonds, or charges that are probably wrong; see [Warnings and failures](#warnings-and-failures).
 
 ![results-select](/help/results-select.png)
 
@@ -110,6 +110,54 @@ The second-to-last column of ATOM and HETATM records in PQR files is used to sto
 
 ### Mol2 output format
 The ninth column of ATOM records in Mol2 files is used to store partial atomic charges, see the [Mol2 format specification](https://aideepmed.com/DockRMSD/mol2.pdf).
+
+# Warnings and failures
+
+ACC III tells you when something in the input or in the calculated charges needs your attention. A warning does not stop the calculation: the charges are shown, and the warning says where not to trust them.
+
+## Missing hydrogen atoms
+
+A structure contains carbon but no hydrogen atoms. Charges calculated without hydrogens are usually not usable, because every method expects complete molecules.
+
+**What to do:** add the hydrogens before uploading; see [Protonation](#protonation).
+
+## Atoms without bonds
+
+Some atoms of a ligand or of a modified residue have no bonds. Most methods need the bonds, so the charges of these atoms, and of the atoms next to them, are probably wrong. The rest of the structure is not affected. The warning names the residues and some of the atoms.
+
+ACC III knows the bonds of proteins and nucleic acids. For ligands and modified residues, it takes the bonds from the uploaded file. If the file has none, it looks the residue up in the wwPDB Chemical Component Dictionary and finds its atoms there by their names. Atoms are left without bonds when:
+
+- the file has no bonds for a ligand that is not in the dictionary, such as a new compound, or a ligand named `LIG` or `UNL`;
+- the atoms have other names than in the dictionary. This is common for hydrogens added by a program.
+
+**What to do:** upload a file that contains the bonds of the ligand, that is, an mmCIF file with bonds or a PDB file with `CONECT` records. Renaming the atoms as in the dictionary helps too. A file downloaded from ACC III may not contain the bonds, so use the original file for another calculation.
+
+## Charges may be wrong
+
+The charges were calculated, but they do not look right:
+
+- **Atoms too close.** Two atoms are much closer to each other than bonded atoms are, for example two copies of one atom. Methods that use the coordinates give wrong charges around them. Check the coordinates of the atoms named in the warning.
+- **Charges out of range.** Some charges are far from anything expected for an atom. The method does not work for this structure. Check the structure, or use another method or other parameters.
+
+## Charges not available
+
+A method could not be calculated for one of the files. The charges of the other methods and files are shown as usual. The message gives the reason; the common ones are:
+
+- the method does not support the molecule, for example because the molecule has charged parts;
+- the parameters do not cover an element or a kind of atom in the molecule;
+- the calculated charges are beyond ±10 e, which ACC III cannot show and which are certainly wrong;
+- the structure is too large for the memory of the server, or the calculation was interrupted. For a large structure, choose fewer methods at once.
+
+**What to do:** choose another method or other parameters on the [setup page](#computation-settings); it offers only those that can be calculated for your files.
+
+## Files not available for download
+
+The PQR file of a structure could not be written, so it is missing in the download. The charges are fine, and the mmCIF and plain-text files are there. A PQR file cannot hold:
+
+- chain names that are not a single letter, such as `AA` or `1`, which large structures have;
+- elements without a known atomic radius, such as molybdenum, tungsten, or ruthenium.
+
+More about how the input is read and what the warnings mean is in the documentation of ChargeFW, the program that calculates the charges: [preparing input](https://chargefw.readthedocs.io/en/latest/guide/input.html) and [warnings](https://chargefw.readthedocs.io/en/latest/guide/results.html#warnings).
 
 # File management
 After logging in, the user can filter, search, delete, and download uploaded files or upload new ones until the quota is reached.

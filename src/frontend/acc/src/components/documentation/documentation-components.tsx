@@ -44,20 +44,22 @@ export const DocumentationComponents = ({
           );
         },
         h2(props: HTMLAttributes<HTMLHeadingElement>) {
+          // The warnings of the results page link to these headings.
           return (
-            <h3
-              className="capitalize font-bold text-primary text-xl mb-1 mt-2"
-              {...props}
-            />
+            <div className="relative">
+              <div
+                id={getSectionId(`${props?.children ?? ""}`)}
+                className="absolute bottom-36"
+              ></div>
+              <h3
+                className="capitalize font-bold text-primary text-xl mb-1 mt-2"
+                {...props}
+              />
+            </div>
           );
         },
         h3(props: HTMLAttributes<HTMLHeadingElement>) {
-          return (
-            <h3
-              className="font-bold text-l mb-1 mt-2"
-              {...props}
-            />
-          );
+          return <h3 className="font-bold text-l mb-1 mt-2" {...props} />;
         },
         strong(props: HTMLAttributes<HTMLElement>) {
           return <strong className="font-bold" {...props} />;

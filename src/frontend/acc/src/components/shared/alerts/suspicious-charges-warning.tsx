@@ -3,6 +3,7 @@ import type { FileWarning } from "@acc/api/compute/compute";
 import { HTMLAttributes, HTMLElementType } from "react";
 
 import { WarningAlert } from "../warning-alert";
+import { LearnMore } from "./learn-more";
 
 export type SuspiciousChargesWarningProps = {
   warnings: FileWarning[];
@@ -34,7 +35,8 @@ export const SuspiciousChargesWarning = ({
       title="Charges may be wrong"
       description={
         <>
-          Check the structure, or compare with another method.
+          Check the structure, or compare with another method.{" "}
+          <LearnMore entry="Charges may be wrong" />
           <ul className="list-disc ml-4 mt-1">
             {reasons.map((reason) => (
               <li key={reason}>{reason}</li>

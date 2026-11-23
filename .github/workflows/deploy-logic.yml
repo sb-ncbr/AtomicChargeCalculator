@@ -82,6 +82,11 @@ jobs:
                 export NGINX_CONFIG_FILE="nginx.dev.conf"
             fi
 
+            # The API may use four fifths of the memory of this host. A calculation that
+            # needs more gets the API worker killed and restarted, not the database.
+            export ACC_API_MEMORY_LIMIT="$(awk '/^MemTotal:/ { printf "%dm", $2 / 1024 * 0.8 }' /proc/meminfo)"
+            echo "API memory limit: $ACC_API_MEMORY_LIMIT"
+
             cd $PROJECT_ROOT
             echo "Changed directory to $(pwd)"
 

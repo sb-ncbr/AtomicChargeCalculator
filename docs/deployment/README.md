@@ -86,6 +86,19 @@ export OIDC_REDIRECT_URL=https://acc.biodata.ceitec.cz/api/v1/auth/callback
 export NGINX_CONFIG_FILE=nginx.prod.conf
 ```
 
+For both, also set the memory that the API container may use, as the workflow does,
+to four fifths of the memory of the host:
+
+```bash
+export ACC_API_MEMORY_LIMIT="$(awk '/^MemTotal:/ { printf "%dm", $2 / 1024 * 0.8 }' /proc/meminfo)"
+```
+
+A calculation that needs more memory than that gets the API worker killed. Gunicorn
+starts a new worker at once, which marks the computations that were running as failed,
+and the database and Nginx are not affected. The limit on calculations running at once,
+`ACC_MAX_CONCURRENT_CALCULATIONS`, makes this rare; see the
+[backend documentation](../backend/README.md).
+
 Register the matching callback with Life Science. The frontend API URL is baked
 into the Nginx image at build time. Both deployments use the database name `postgres_prod`
 and user `prod_user` on their respective hosts. Changing `DB_PASSWORD` does not

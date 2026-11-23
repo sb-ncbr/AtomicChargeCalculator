@@ -36,6 +36,10 @@ services:
   api:
     ports:
       - "8000:8000"
+    # Beyond it, the kernel kills the API worker, which gunicorn starts again, and not
+    # the database or Nginx. The deployment workflow sets it to four fifths of the memory
+    # of the host.
+    mem_limit: ${ACC_API_MEMORY_LIMIT:?Set ACC_API_MEMORY_LIMIT, such as 6g}
     environment:
       ACC_DB_URL: "postgresql+psycopg://prod_user:${DB_PASSWORD}@db:5432/postgres_prod"
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}

@@ -22,6 +22,8 @@ NOT_APPLICABLE = "not_applicable"
 UNEXPECTED_ERROR = "unexpected_error"
 # The server ran out of memory reading the file or calculating its charges.
 OUT_OF_MEMORY = "out_of_memory"
+# The file is a 2D drawing; ACC shows charges on 3D structures only.
+DRAWING_2D = "drawing_2d"
 
 
 class EngineError(RuntimeError):

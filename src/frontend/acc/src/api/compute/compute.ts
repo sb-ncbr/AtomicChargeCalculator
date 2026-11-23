@@ -58,6 +58,16 @@ export interface FileWarning extends Issue {
 export const isMissingHydrogens = (warnings: FileWarning[] | undefined) =>
   warnings?.some(({ kind }) => kind === "hydrogens_missing") ?? false;
 
+/**
+ * What a warning about atoms without bonds says to users: how many atoms and which
+ * residues. ChargeFW adds, after the last colon, the settings the file was read with,
+ * which ACC III does not offer.
+ */
+export const unbondedAtomsMessage = ({ message }: FileWarning) => {
+  const end = message.lastIndexOf("): ");
+  return end === -1 ? message : `${message.slice(0, end + 1)}.`;
+};
+
 /** Whether ChargeFW warns that the calculated charges are probably wrong. */
 export const isSuspiciousCharges = ({ kind }: FileWarning) =>
   kind === "atoms_too_close" || kind === "charge_out_of_range";

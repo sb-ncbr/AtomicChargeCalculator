@@ -221,3 +221,21 @@ def test_running_out_of_memory_while_reading_says_the_structure_is_too_large(
     with pytest.raises(MoleculeReadError, match="too large") as error:
         engine.molecules(PHENOLS)
     assert error.value.kind == "out_of_memory"
+
+
+def test_a_2d_drawing_is_refused_in_plain_words(engine, tmp_path):
+    # A record marked 2D, as in the default SDF download from PubChem.
+    path = tmp_path / "hash_drawing.sdf"
+    path.write_text(
+        "ethanol\n  ChemDraw          2D\n\n"
+        "  3  2  0  0  0  0  0  0  0  0999 V2000\n"
+        "    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+        "    1.2990    0.7500    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0\n"
+        "    2.5981    0.0000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0\n"
+        "  1  2  1  0\n  2  3  1  0\nM  END\n$$$$\n"
+    )
+
+    with pytest.raises(MoleculeReadError, match="2D drawing, not a 3D structure") as error:
+        engine.molecules(str(path))
+    assert error.value.kind == "drawing_2d"
+

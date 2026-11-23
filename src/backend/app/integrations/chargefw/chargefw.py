@@ -53,12 +53,13 @@ INPUT_FORMATS = {
 }
 STRUCTURE_FORMATS = frozenset({"pdb", "mmcif"})
 
-# Threads of one calculation. Calculations also run side by side in ACC's own thread pool,
-# so each gets only two; they speed up the full calculation of a large structure, and cutoff
-# and cover. ChargeFW chooses the execution: expensive methods such as EEM and SQE+qp run
-# in full up to 20,000 atoms in the largest molecule, with cutoff up to 80,000, and with
-# cover above.
-THREADS = 2
+# Threads of one calculation. One client runs two calculations at once and all clients
+# three (see ChargeService), so four threads each use the eight cores of the server when one
+# client calculates. They speed up the full calculation of a large structure, and cutoff and
+# cover. ChargeFW chooses the execution: expensive methods such as EEM and SQE+qp run in
+# full up to 20,000 atoms in the largest molecule, with cutoff up to 80,000, and with cover
+# above.
+THREADS = 4
 
 
 # What users see when ChargeFW runs out of memory; it raises MemoryError then.

@@ -415,3 +415,43 @@ async def test_files_of_a_rejected_request_do_not_become_inputs(rejection):
 
     assert error.value.status_code == (413 if rejection == "too_large" else 400)
     io.prepare_inputs.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_calculations_of_a_guest_belong_to_the_address_nginx_saw():
+    from unittest.mock import AsyncMock, Mock
+
+    from api.v1.routes.charges import calculate_charges
+    from api.v1.schemas.charges import CalculateChargesRequest
+
+    request = Mock()
+    request.state.user = None
+    request.headers = {"x-real-ip": "192.0.2.7"}
+    storage = Mock()
+    storage.get_calculation_set.return_value = None
+    service = Mock()
+    service.config_error.return_value = None
+    service.get_available_methods.return_value = []
+    service.calculate_charges = AsyncMock(
+        return_value=[CalculationResultDto(config=EEM, calculations=[calculation("hash1", EEM)])]
+    )
+    io = Mock()
+    io.get_file_size.return_value = 1
+    io.max_file_size = 100
+    io.store_configs = AsyncMock()
+
+    await calculate_charges(
+        request,
+        CalculateChargesRequest(
+            configs=[{"method": "eem", "parameters": "EEM_example"}], file_hashes=["hash1"]
+        ),
+        Mock(),
+        response_format="charges",
+        charge_service=service,
+        storage_service=storage,
+        mmcif_service=Mock(),
+        io_service=io,
+    )
+
+    assert service.calculate_charges.call_args.args[-1] == "192.0.2.7"
+

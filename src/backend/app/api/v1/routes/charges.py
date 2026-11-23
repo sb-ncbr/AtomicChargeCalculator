@@ -491,6 +491,11 @@ async def calculate_charges(
             user_id, computation_id, CalculationState.CALCULATING
         )
 
+        # Who the calculations belong to: the user, or the address of a guest as Nginx saw it.
+        client = user_id or request.headers.get("x-real-ip") or (
+            request.client.host if request.client else None
+        )
+
         if response_format == "none":
             background_tasks.add_task(
                 _calculate_charges_in_background,
@@ -503,6 +508,7 @@ async def calculate_charges(
                 storage_service,
                 mmcif_service,
                 io_service,
+                client,
             )
 
             return Response(data=computation_id)
@@ -517,6 +523,7 @@ async def calculate_charges(
             storage_service,
             mmcif_service,
             io_service,
+            client,
         )
 
         return Response(data={"computationId": computation_id, "results": calculations})
@@ -845,6 +852,7 @@ async def _calculate_charges(
     storage_service: CalculationStorageService,
     mmcif_service: MmCIFService,
     io_service: IOService,
+    client: str | None = None,
 ) -> list[CalculationResultDto]:
     """Runs the charge calculation and waits for results.
 
@@ -860,6 +868,7 @@ async def _calculate_charges(
             settings,
             to_calculate,
             user_id,
+            client,
         )
 
         unavailable = await _unavailable_charges(calculations, charge_service)

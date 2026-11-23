@@ -7,7 +7,7 @@ This service stores computations (their files, settings, and methods) and statis
 ## charges
 Reads uploaded files, suggests methods, and calculates charges, using the [charge engine](../../../src/backend/app/integrations/chargefw/base.py).
 
-The number of simultaneous calculations is limited using `asyncio.Semaphore`. This service is injected in [API container](../../../src/backend//app/api/v1/container.py) as a singleton, meaning that the semaphore is the same instance for all users (it restricts the number of simultaneous calculations globally).
+The number of simultaneous calculations is limited using `asyncio.Semaphore`. This service is injected in [API container](../../../src/backend//app/api/v1/container.py) as a singleton, and the API runs in one worker process, so the semaphore is the same instance for all users: it restricts the number of simultaneous calculations globally (`ACC_MAX_CONCURRENT_CALCULATIONS`). A second semaphore for each client, a user or the address of a guest, allows one calculation less. A client with many calculations therefore waits for its own, and a calculation of another client starts when it comes.
 
 ## file_storage
 Similar to the `calculation_storage` but for files. It currently only provides the functionality to list (filter, sort) files of a user.

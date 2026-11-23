@@ -1,7 +1,7 @@
 from integrations.chargefw.base import MethodAssessment
 from models.issue import IssueDto
 from typing import Literal
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import ANY, AsyncMock, Mock
 import pytest
 
 from app.models.method import Method
@@ -301,6 +301,7 @@ class TestChargeService:
             config,
             file_hashes,
             {"hash1": frozenset({"2hu4"}), "hash2": frozenset({"2hu4"})},
+            ANY,
         )
         assert [call.args[3] for call in engine_mock.molecules.call_args_list] == [
             frozenset(),
@@ -448,3 +449,53 @@ async def test_a_file_that_cannot_be_read_takes_no_names(service, engine_mock):
     # The second file is read with no names taken, and a third one with those of the second.
     assert engine_mock.molecules.call_args.args[3] == frozenset()
     assert service._names_taken_before({**names, "hash3": frozenset()}, "hash3") == {"mol"}
+
+
+@pytest.mark.asyncio
+async def test_a_client_with_many_calculations_leaves_room_for_another(service, engine_mock):
+    import asyncio
+    import threading
+
+    from integrations.chargefw.base import CalculatedCharges
+
+    # Three calculations may run at once, two of them for one client.
+    from concurrent.futures import ThreadPoolExecutor
+
+    service.executor = ThreadPoolExecutor(4)
+    service.semaphore = asyncio.Semaphore(3)
+    service.max_client_calculations = 2
+    service.read_molecules = AsyncMock(return_value=Mock())
+    engine_mock.warnings.return_value = []
+    release = threading.Event()
+    running = []
+
+    def calculate(molecules, method, parameters, out_dir):
+        running.append(method)
+        release.wait(5)
+        return CalculatedCharges(charges={"mol": [0.0]})
+
+    engine_mock.calculate_charges.side_effect = calculate
+    many = {CalculationConfigDto(method=f"big{i}", parameters=None): ["hash1"] for i in range(6)}
+    one = {CalculationConfigDto(method="single", parameters=None): ["hash1"]}
+
+    first = asyncio.create_task(
+        service.calculate_charges("comp1", AdvancedSettingsDto(), many, None, "client-a")
+    )
+    await asyncio.sleep(0.2)
+    second = asyncio.create_task(
+        service.calculate_charges("comp2", AdvancedSettingsDto(), one, None, "client-b")
+    )
+    await asyncio.sleep(0.2)
+
+    # The other client's calculation runs beside two of the six, not after them.
+    assert sorted(running) == ["big0", "big1", "single"]
+    release.set()
+    results = await asyncio.gather(first, second)
+    assert [len(r) for r in results] == [6, 1]
+    assert len(running) == 7
+    # The limits are gone with the calculations that used them.
+    import gc
+
+    del first, second, results
+    gc.collect()
+    assert len(service.client_limits) == 0

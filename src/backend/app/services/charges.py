@@ -3,6 +3,7 @@
 import asyncio
 import os
 import traceback
+import weakref
 
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
@@ -56,6 +57,12 @@ class ChargeService:
         self.calculation_storage = calculation_storage
         self.executor = ThreadPoolExecutor(max_workers)
         self.semaphore = asyncio.Semaphore(max_concurrent_calculations)
+        # One client runs at most this many calculations at once, so that a client with many
+        # calculations leaves room for the others. A limit lives while calculations use it.
+        self.max_client_calculations = max(1, max_concurrent_calculations - 1)
+        self.client_limits: weakref.WeakValueDictionary[str, asyncio.Semaphore] = (
+            weakref.WeakValueDictionary()
+        )
 
     async def _run_in_executor(self, func, *args, executor=None):
         loop = asyncio.get_event_loop()
@@ -280,6 +287,7 @@ class ChargeService:
         settings: AdvancedSettingsDto,
         data: dict[CalculationConfigDto, list[str]],
         user_id: str | None,
+        client: str | None = None,
     ) -> list[CalculationResultDto]:
         """Calculate charges for provided files.
 
@@ -289,6 +297,8 @@ class ChargeService:
             data (dict[CalculationConfigDto, list[str]]): File hashes to calculate for each
                 configuration.
             user_id (str): User id making the calculation.
+            client (str): Who asks for the calculation, such as the user or the address of a
+                guest. The calculations of one client share a limit, see `_client_limit`.
 
         Returns:
             list[CalculationResultDto]: One result per configuration, in the order of
@@ -296,6 +306,7 @@ class ChargeService:
                 under `calculations`, the failed ones under `failures`.
         """
 
+        client_limit = self._client_limit(client or user_id or computation_id)
         files = list(dict.fromkeys(h for file_hashes in data.values() for h in file_hashes))
         names_by_file = (
             await self._names_by_file(user_id, settings, files) if len(files) > 1 else {}
@@ -304,7 +315,13 @@ class ChargeService:
         calculations = await asyncio.gather(
             *[
                 self._calculate_charges(
-                    user_id, computation_id, settings, config, file_hashes, names_by_file
+                    user_id,
+                    computation_id,
+                    settings,
+                    config,
+                    file_hashes,
+                    names_by_file,
+                    client_limit,
                 )
                 for config, file_hashes in data.items()
             ],
@@ -312,6 +329,20 @@ class ChargeService:
         )
 
         return calculations
+
+    def _client_limit(self, client: str) -> asyncio.Semaphore:
+        """The limit that all calculations of one client share.
+
+        It is one less than the calculations that may run at once, so that a client with a
+        hundred calculations waits for its own, and another client's calculation starts
+        when it comes.
+        """
+
+        limit = self.client_limits.get(client)
+        if limit is None:
+            limit = asyncio.Semaphore(self.max_client_calculations)
+            self.client_limits[client] = limit
+        return limit
 
     def _stored_file(self, workdir: str, file_hash: str) -> str | None:
         """The name under which the file of the hash is stored, if it is."""
@@ -384,11 +415,16 @@ class ChargeService:
         config: CalculationConfigDto,
         file_hashes: list[str],
         names_by_file: dict[str, frozenset[str]] | None = None,
+        client_limit: asyncio.Semaphore | None = None,
     ) -> CalculationResultDto:
         """Calculate charges for provided files.
 
         names_by_file: the molecule names of each file of the computation, in lower case.
+        client_limit: the limit that the calculations of the client share.
         """
+
+        if client_limit is None:
+            client_limit = self._client_limit(computation_id)
 
         self.logger.info(
             f"Calculating charges with method {config.method} and parameters {config.parameters}."
@@ -407,7 +443,8 @@ class ChargeService:
                 )
                 return
 
-            async with self.semaphore:
+            # The client's turn first: only calculations that may run wait for a free slot.
+            async with client_limit, self.semaphore:
                 charges_dir = self.io.get_charges_path(computation_id, user_id)
                 self.io.create_dir(charges_dir)
 

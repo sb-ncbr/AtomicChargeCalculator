@@ -1,4 +1,6 @@
 import { handleApiError } from "@acc/api/base";
+import { FileWarning, isMissingHydrogens } from "@acc/api/compute/compute";
+import { AdvancedSettings as Settings } from "@acc/api/compute/types";
 import { UploadResponse } from "@acc/api/files/types";
 import { getSuitableMethodsForFiles } from "@acc/api/methods/methods";
 import { MostSuitableMethod } from "@acc/api/methods/types";
@@ -17,7 +19,6 @@ import {
   PopoverTrigger,
 } from "@acc/components/ui/popover";
 import { Separator } from "@acc/components/ui/separator";
-import { useFileStatsContext } from "@acc/lib/hooks/contexts/use-file-stats-context";
 import { useComputationMutations } from "@acc/lib/hooks/mutations/use-calculations";
 import { useFileMutations } from "@acc/lib/hooks/mutations/use-files";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,8 +34,7 @@ const computeSchema = z.object({
     .instanceof(FileList, { error: "Files are required." })
     .refine((files) => files.length > 0),
   settings: z.object({
-    readHetatm: z.boolean(),
-    ignoreWater: z.boolean(),
+    selection: z.enum(["polymers", "polymers-and-ligands", "all"]),
     permissiveTypes: z.boolean(),
   }),
 });
@@ -43,56 +43,70 @@ type ComputeType = z.infer<typeof computeSchema>;
 
 const getMostSuitableMethod = async (
   fileHashes: string[],
-  permissiveTypes: boolean
-): Promise<MostSuitableMethod> => {
+  settings: Settings
+): Promise<Pick<Suggestion, "method" | "warnings">> => {
   const suitableMethods = await getSuitableMethodsForFiles(
     fileHashes,
-    permissiveTypes
+    settings
   );
   const method = suitableMethods.methods[0];
   return {
-    method,
-    parameters: suitableMethods.parameters[method.internalName]?.[0],
+    method: method
+      ? {
+          method,
+          parameters: suitableMethods.parameters[method.internalName]?.[0],
+        }
+      : null,
+    warnings: suitableMethods.warnings,
   };
 };
+
+// The suggestion answers one request: the files and settings it was asked with.
+type Suggestion = {
+  request: string;
+  // null when no method is suitable
+  method: MostSuitableMethod | null;
+  // What ChargeFW warns about in the files, such as missing hydrogens.
+  warnings: FileWarning[];
+  error: string | null;
+};
+
+const suggestionRequest = (
+  uploadResponse: UploadResponse | null,
+  settings: Settings
+): string | null =>
+  uploadResponse &&
+  JSON.stringify([uploadResponse.map(({ fileHash }) => fileHash), settings]);
 
 export const Compute = () => {
   const navigate = useNavigate();
   const { fileUploadMutation } = useFileMutations();
   const { computeMutation, setupMutation } = useComputationMutations();
-  const fileStatsContext = useFileStatsContext();
 
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadResponse, setUploadResponse] = useState<UploadResponse | null>(
     null
   );
-  const [mostSuitableMethod, setMostSuitableMethod] =
-    useState<MostSuitableMethod | null>(null);
+  const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
 
   const form = useForm<ComputeType>({
     resolver: zodResolver(computeSchema),
     defaultValues: {
       files: undefined,
       settings: {
-        readHetatm: true,
-        ignoreWater: false,
+        selection: "all",
         permissiveTypes: true,
       },
     },
   });
-  const watchPermissiveTypes = useWatch({
+  // The suggested method depends on the atoms selected and on the parameter matching.
+  const [watchSelection, watchPermissiveTypes] = useWatch({
     control: form.control,
-    name: "settings.permissiveTypes",
+    name: ["settings.selection", "settings.permissiveTypes"],
   });
 
-  // Compute and Setup need the finished upload, which also carries the file stats.
+  // Compute and Setup need the finished upload.
   const isUploaded = form.formState.isValid && uploadResponse !== null;
-  const missingHydrogens =
-    uploadResponse?.some(
-      ({ stats }) =>
-        (stats.atomTypeCounts.find(({ symbol }) => symbol === "H")?.count ??
-          0) === 0
-    ) ?? false;
 
   const onSubmit = async (data: ComputeType) => {
     if (uploadResponse === null) {
@@ -100,11 +114,6 @@ export const Compute = () => {
     }
 
     const compId = crypto.randomUUID();
-
-    fileStatsContext.set(
-      compId,
-      Object.fromEntries(uploadResponse.map((f) => [f.fileHash, f.stats]))
-    );
 
     await computeMutation.mutateAsync(
       {
@@ -129,7 +138,7 @@ export const Compute = () => {
 
   const onFileChange = async (data: FileList | null) => {
     setUploadResponse(null);
-    setMostSuitableMethod(null);
+    setSuggestion(null);
     setUploadError(null);
 
     if (!data) {
@@ -158,10 +167,6 @@ export const Compute = () => {
       {
         onError: (e) => setUploadError(handleApiError(e)),
         onSuccess: (compId) => {
-          fileStatsContext.set(
-            compId,
-            Object.fromEntries(uploadResponse.map((f) => [f.fileHash, f.stats]))
-          );
           void navigate({
             pathname: "setup",
             search: createSearchParams({
@@ -173,24 +178,45 @@ export const Compute = () => {
     );
   };
 
+  const settings = {
+    selection: watchSelection,
+    permissiveTypes: watchPermissiveTypes,
+  };
+  // A suggestion for other files or settings is not shown, also while the current one loads.
+  const request = suggestionRequest(uploadResponse, settings);
+  const currentSuggestion =
+    suggestion && suggestion.request === request ? suggestion : null;
+
   useEffect(() => {
-    if (!uploadResponse) {
+    if (!uploadResponse || !request) {
       return;
     }
     // Ignore the answer if the files or settings changed while it was loading.
     let isCurrent = true;
     const fileHashes = uploadResponse.map(({ fileHash }) => fileHash);
-    void getMostSuitableMethod(fileHashes, watchPermissiveTypes).then(
-      (method) => {
+    getMostSuitableMethod(fileHashes, {
+      selection: watchSelection,
+      permissiveTypes: watchPermissiveTypes,
+    })
+      .then((suggested) => {
         if (isCurrent) {
-          setMostSuitableMethod(method);
+          setSuggestion({ request, ...suggested, error: null });
         }
-      }
-    );
+      })
+      .catch((error: unknown) => {
+        if (isCurrent) {
+          setSuggestion({
+            request,
+            method: null,
+            warnings: [],
+            error: handleApiError(error),
+          });
+        }
+      });
     return () => {
       isCurrent = false;
     };
-  }, [uploadResponse, watchPermissiveTypes]);
+  }, [uploadResponse, request, watchSelection, watchPermissiveTypes]);
 
   return (
     <Card className="w-11/12 md:w-4/5 rounded-none shadow-xl mx-auto p-4 max-w-content mb-12 mt-0 xs:mt-8 md:mt-0 relative">
@@ -232,7 +258,9 @@ export const Compute = () => {
             </p>
           </div>
 
-          {missingHydrogens && <MissingHydrogensWarning />}
+          {isMissingHydrogens(currentSuggestion?.warnings) && (
+            <MissingHydrogensWarning />
+          )}
           {uploadError !== null && (
             <ErrorAlert title="Upload error" description={uploadError} />
           )}
@@ -266,26 +294,34 @@ export const Compute = () => {
             </Popover>
           </div>
 
-          {mostSuitableMethod && (
+          {currentSuggestion && (
             <>
               <Separator className="my-4" />
 
               <p className="text-sm text-black text-opacity-40">
-                Most suitable method is{" "}
-                <span className="font-bold">
-                  {mostSuitableMethod?.method.name}
-                </span>{" "}
-                {mostSuitableMethod?.parameters ? (
-                  <span>
-                    {" "}
-                    with{" "}
+                {currentSuggestion.error ? (
+                  `The most suitable method could not be found. ${currentSuggestion.error}`
+                ) : currentSuggestion.method ? (
+                  <>
+                    Most suitable method is{" "}
                     <span className="font-bold">
-                      {mostSuitableMethod?.parameters?.fullName}
-                    </span>{" "}
-                    parameters.
-                  </span>
+                      {currentSuggestion.method.method.name}
+                    </span>
+                    {currentSuggestion.method.parameters ? (
+                      <span>
+                        {" "}
+                        with{" "}
+                        <span className="font-bold">
+                          {currentSuggestion.method.parameters.fullName}
+                        </span>{" "}
+                        parameters.
+                      </span>
+                    ) : (
+                      "."
+                    )}
+                  </>
                 ) : (
-                  "."
+                  "No method is suitable for the selected atoms."
                 )}
               </p>
             </>

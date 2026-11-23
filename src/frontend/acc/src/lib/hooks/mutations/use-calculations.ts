@@ -58,7 +58,9 @@ export const useComputationMutations = () => {
       computationId,
       molecule = "",
     }: LoadMmcifMutationData) => {
-      const search = molecule ? `?molecule=${molecule}` : "";
+      const search = molecule
+        ? `?molecule=${encodeURIComponent(molecule)}`
+        : "";
       await molstar.load(
         `${baseApiUrl}/charges/${computationId}/mmcif${search}`,
         "mmcif",

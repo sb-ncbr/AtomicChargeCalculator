@@ -9,7 +9,7 @@ PostgreSQL. Follow the bootstrap instructions before using it on a fresh host.
 These instructions assume an x86-64 Ubuntu LTS server with systemd, the SSH user
 `ubuntu`, and one ACC installation per host. Paths and container names are fixed
 in Compose and the workflow; selecting Development or Production does not isolate
-two installations on one host. ChargeFW2 currently contains x86-64-specific paths.
+two installations on one host.
 
 1. Install Git, OpenSSH server, `ca-certificates`, `curl`, `util-linux` (for `flock`),
    `logrotate`, and `certbot` using Ubuntu packages. Install Docker Engine and the
@@ -19,7 +19,7 @@ two installations on one host. ChargeFW2 currently contains x86-64-specific path
    is effectively root access. The workflow also requires noninteractive `sudo`
    for its Git commands; verify this setup before deployment.
 3. Configure SSH key access for GitHub Actions. Ensure the server can fetch the
-   repository and submodule, including when Git is invoked through `sudo`.
+   repository, including when Git is invoked through `sudo`.
 4. Point the configured DNS names at the host. Permit SSH and TCP 80/443; do not
    run a host web server that occupies those ports.
 
@@ -32,7 +32,6 @@ Clone the repository to `/home/ubuntu/AtomicChargeCalculator`, then run from tha
 checkout (replace the clone URL with the repository URL if creating it):
 
 ```bash
-git submodule update --init --recursive
 sudo install -d -m 0755 /home/acc /var/log/acc /var/www/certbot
 sudo install -d -m 0755 -o root -g adm /var/log/acc/nginx
 sudo touch /var/log/acc/nginx/access.log /var/log/acc/nginx/error.log
@@ -100,7 +99,6 @@ The production configuration needs a certificate covering both public hostnames.
 From the repository root, with the environment above set:
 
 ```bash
-docker build -t chargefw2-base:acc -f ChargeFW2/Dockerfile ChargeFW2
 cd src/deployment
 docker compose -f docker-compose.yml -f docker-compose.prod.yml build --pull nginx
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d db
@@ -131,7 +129,6 @@ host is not a substitute for this bootstrap.
 Open **Actions > Deploy (Manual) > Run workflow**. Select the target environment,
 the workflow revision, the branch to deploy, and the required checkboxes:
 
-- **Rebuild ChargeFW2:** builds the base image; also select **Deploy API** to use it.
 - **Deploy API:** builds and recreates the API container.
 - **Deploy Web:** rebuilds the Nginx image, which contains the built frontend, then
   runs the same checks as **Deploy Nginx** and recreates Nginx. Because Nginx is the
@@ -149,6 +146,16 @@ that predate serving the frontend from Nginx still run the stock Nginx image and
 separate `acc-web` container; select **Deploy Web** for their first deployment, which
 builds the new image and removes `acc-web`. Restarting a container does not apply
 changed Compose mounts.
+
+Installations that predate ChargeFW 3 keep the `ChargeFW2` directory of the former
+submodule in the server checkout and the `chargefw2-base:acc` image. Nothing uses them
+any more; the workflow does not remove them, so remove them by hand after the first
+deployment.
+
+The API container applies database migrations when it starts. The migration that
+introduces the `selection` setting replaces the `read_hetatm` and `ignore_water`
+columns of `advanced_settings`; back up the database before the first deployment
+that includes it.
 
 ## Logging maintenance
 
@@ -192,8 +199,8 @@ python3 utils/usage_stats.py --server prod --database --start-date 2026-07-01 --
 Use `--year` for a calendar year, or `--start-date` and exclusive `--end-date` for a
 UTC interval. Add `--database` for method, molecules-per-submission, and molecule-size
 summaries. The report is useful for checking web traffic, calculation activity, or the
-mix of small and large inputs. Database dates mean record creation; method counts do
-not distinguish cached results from new calculations. Large-input categories are not
+mix of small and large inputs. Database dates mean record creation; in records created
+before ACC stopped reusing stored charges, method counts include reused results. Large-input categories are not
 chemical classifications, and actual computation runtimes are not recorded.
 Nginx results distinguish all IPs from IPs on requests not flagged by the known-bot
 heuristic; calculation submissions are shown separately. API logs lack user agents,

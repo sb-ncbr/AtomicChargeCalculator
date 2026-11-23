@@ -130,20 +130,26 @@ export const Calculation = ({
           ))}
         </div>
       </div>
-      {Object.values(settings).some(Boolean) && (
+      {(settings.selection !== "all" || settings.permissiveTypes) && (
         <div>
           <span className="block font-bold text-md mb-2">
             Advanced Settings
           </span>
           <div className="flex gap-2 flex-wrap">
-            {settings.readHetatm && (
+            {settings.selection === "polymers" && (
               <Badge className="rounded" variant={"secondary"}>
-                Read HETATM
+                Polymers only
               </Badge>
             )}
-            {settings.ignoreWater && (
+            {settings.selection === "polymers-and-ligands" && (
               <Badge className="rounded" variant={"secondary"}>
-                Ignore water
+                Without water
+              </Badge>
+            )}
+            {settings.selection === "without-hetatm" && (
+              <Badge className="rounded" variant={"secondary"}>
+                Without HETATM records
+                <InfoTooltip info="Calculated by ACC before it used ChargeFW 3, which left out HETATM records, modified residues included. Its charges stay available, but it cannot be calculated again." />
               </Badge>
             )}
             {settings.permissiveTypes && (

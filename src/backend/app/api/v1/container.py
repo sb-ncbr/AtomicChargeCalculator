@@ -9,16 +9,15 @@ from dotenv import load_dotenv, find_dotenv
 from db.database import Database, SessionManager
 from db.repositories import advanced_settings_repository
 from db.repositories.calculation_config_repository import CalculationConfigRepository
-from db.repositories.calculation_repository import CalculationRepository
 from db.repositories.calculation_set_repository import CalculationSetRepository
 from db.repositories.user_repository import UserRepository
 from db.repositories.moleculeset_stats_repository import MoleculeSetStatsRepository
 
-from integrations.chargefw2.chargefw2 import ChargeFW2Local
+from integrations.chargefw.chargefw import ChargeFWLocal
 from integrations.io.io import IOLocal
 
 from services.calculation_storage import CalculationStorageService
-from services.chargefw2 import ChargeFW2Service
+from services.charges import ChargeService
 from services.file_storage import FileStorageService
 from services.io import IOService
 from services.logging.file_logger import FileLogger
@@ -35,7 +34,7 @@ class Container(containers.DeclarativeContainer):
     wiring_config = containers.WiringConfiguration(packages=["api", "services"])
 
     # integrations
-    chargefw2 = providers.Singleton(ChargeFW2Local)
+    charge_engine = providers.Singleton(ChargeFWLocal)
     io = providers.Singleton(IOLocal)
 
     # database
@@ -46,7 +45,6 @@ class Container(containers.DeclarativeContainer):
 
     # repositories
     set_repository = providers.Factory(CalculationSetRepository)
-    calculation_repository = providers.Factory(CalculationRepository, set_repository=set_repository)
     config_repository = providers.Factory(
         CalculationConfigRepository, set_repository=set_repository
     )
@@ -64,7 +62,6 @@ class Container(containers.DeclarativeContainer):
         CalculationStorageService,
         logger=logger_service,
         set_repository=set_repository,
-        calculation_repository=calculation_repository,
         config_repository=config_repository,
         stats_repository=stats_repository,
         advanced_settings_repository=advanced_settings_repository,
@@ -77,14 +74,14 @@ class Container(containers.DeclarativeContainer):
         session_manager=session_manager,
         storage_service=storage_service,
     )
-    chargefw2_service = providers.Singleton(
-        ChargeFW2Service,
-        chargefw2=chargefw2,
+    charge_service = providers.Singleton(
+        ChargeService,
+        engine=charge_engine,
         logger=logger_service,
         io=io_service,
         mmcif_service=mmcif_service,
         calculation_storage=storage_service,
-        max_workers=int(os.environ.get("ACC_MAX_WORKERS") or 4),
-        max_concurrent_calculations=int(os.environ.get("ACC_MAX_CONCURRENT_CALCULATIONS") or 4),
+        max_workers=int(os.environ.get("ACC_MAX_WORKERS") or 8),
+        max_concurrent_calculations=int(os.environ.get("ACC_MAX_CONCURRENT_CALCULATIONS") or 3),
     )
     oidc_service = providers.Singleton(OIDCService, logger=logger_service)

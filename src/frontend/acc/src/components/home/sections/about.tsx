@@ -27,7 +27,7 @@ export const About = () => {
         covers the basic usage of ACC III. All methods and parameters are also
         available in a{" "}
         <a
-          href="https://github.com/sb-ncbr/ChargeFW2"
+          href="https://github.com/sb-ncbr/chargefw"
           target="_blank"
           referrerPolicy="no-referrer"
           className="text-primary hover:underline"

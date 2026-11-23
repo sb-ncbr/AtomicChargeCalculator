@@ -28,9 +28,7 @@ def test_history_pagination_counts_sets_not_joined_configs(
         with Session(engine) as session:
             owner = User(id=UUID(int=100), openid="history-owner")
             other = User(id=UUID(int=101), openid="other-owner")
-            settings = AdvancedSettings(
-                read_hetatm=True, ignore_water=False, permissive_types=False
-            )
+            settings = AdvancedSettings(selection="all", permissive_types=False)
             configs = [
                 CalculationConfig(method="eem", parameters="example"),
                 CalculationConfig(method="eqeq", parameters=None),

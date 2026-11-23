@@ -9,8 +9,6 @@ The deployment workflow updates an existing installation; it does not provision 
 Run from the repository root:
 
 ```bash
-git submodule update --init --recursive
-docker build -t chargefw2-base:acc -f ChargeFW2/Dockerfile ChargeFW2
 cd src/deployment
 docker compose up -d --build --remove-orphans
 ```

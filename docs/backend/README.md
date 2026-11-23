@@ -17,8 +17,8 @@
 - `ACC_GUEST_COMPUTE_STORAGE_QUOTA_BYTES` - Maximum allowed calculation storage space shared by all guest users.
 - `ACC_MAX_FILE_SIZE_BYTES` - Maximum allowed size of a single file user can upload.
 - `ACC_MAX_UPLOAD_SIZE_BYTES` - Maximum allowed sum of sizes of files user can upload in a single request.
-- `ACC_MAX_WORKERS` - Maximum threadpool workers.
-- `ACC_MAX_CONCURRENT_CALCULATIONS` - Maximum allowed simultaneous calculations.
+- `ACC_MAX_WORKERS` - Maximum threadpool workers. They read files and run calculations; keep the number above `ACC_MAX_CONCURRENT_CALCULATIONS`, so that uploads and method suggestions do not wait for running calculations.
+- `ACC_MAX_CONCURRENT_CALCULATIONS` - Maximum allowed simultaneous calculations of all clients. One client (a user, or the address of a guest) runs at most one less. Choose it by the memory of the server: the full calculation of a structure of 20,000 atoms takes about 3 GB with EEM and 7 GB with SQE+qp.
 - `OIDC_BASE_URL` - URL where the application is deployed.
 - `OIDC_REDIRECT_URL` - Redirect URL after successful Life Science auth.
 - `OIDC_DISCOVERY_URL` - URL for fetching OIDC Life Science infomation (auth endpoint, ...).

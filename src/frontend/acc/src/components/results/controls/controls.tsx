@@ -50,7 +50,15 @@ export const Controls = ({
       {
         onError: (error) => toast.error(handleApiError(error)),
         onSuccess: async () => {
-          context.set.methodNames(molstar.charges.getMethodNames());
+          // A molecule lists only the charge sets calculated for it, so a set has
+          // another number or is missing in another molecule. The selected set is
+          // kept when the molecule has it; otherwise the first set is shown.
+          const methodNames = molstar.charges.getMethodNames();
+          const selected =
+            context.get.methodNames?.[context.get.currentTypeId - 1];
+          const typeId = selected ? methodNames.indexOf(selected) + 1 : 0;
+          context.set.methodNames(methodNames);
+          await context.set.typeId(typeId || 1);
           await context.set.coloringType("charges");
           await context.set.maxValue(molstar.charges.getMaxCharge());
           setMmcifLoaded(true);

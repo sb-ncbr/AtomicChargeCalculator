@@ -2,6 +2,7 @@ import type { Method as MethodType } from "@acc/api/methods/types";
 import type { Parameters as ParametersType } from "@acc/api/parameters/types";
 
 import { handleApiError } from "@acc/api/base";
+import { isMissingHydrogens } from "@acc/api/compute/compute";
 import { Calculations } from "@acc/components/setup/calculations";
 import { Method } from "@acc/components/setup/method/method";
 import { Parameters } from "@acc/components/setup/parameters/parameters";
@@ -12,7 +13,6 @@ import { Card } from "@acc/components/ui/card";
 import { Form } from "@acc/components/ui/form";
 import { ScrollArea } from "@acc/components/ui/scroll-area";
 import { Separator } from "@acc/components/ui/separator";
-import { useFileStatsContext } from "@acc/lib/hooks/contexts/use-file-stats-context";
 import { useComputationMutations } from "@acc/lib/hooks/mutations/use-calculations";
 import { useSuitableMethodsQuery } from "@acc/lib/hooks/queries/use-calculations";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,12 +39,12 @@ export type SetupProps = {
 
 export const Setup = ({ computationId }: SetupProps) => {
   const navigate = useNavigate();
-  const statsContext = useFileStatsContext();
 
   const {
     data: suitableMethods,
     isPending,
     isError,
+    error,
   } = useSuitableMethodsQuery(computationId);
   const { computeMutation } = useComputationMutations();
 
@@ -136,7 +136,8 @@ export const Setup = ({ computationId }: SetupProps) => {
   useEffect(() => {
     if (isError) {
       void navigate("/");
-      toast.error("Something went wrong while fetching setup info.");
+      // The API says why no method can be suggested, such as a file ACC cannot show.
+      toast.error(handleApiError(error));
     }
   }, [isError]);
 
@@ -157,7 +158,7 @@ export const Setup = ({ computationId }: SetupProps) => {
             parameters.
           </p>
 
-          {statsContext.isMissingHydrogens(computationId) && (
+          {isMissingHydrogens(suitableMethods?.warnings) && (
             <MissingHydrogensWarning />
           )}
 

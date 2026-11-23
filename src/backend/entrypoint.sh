@@ -11,8 +11,10 @@ alembic upgrade head
 # Prepare shared examples once, before workers import the application.
 python main.py || exit $?
 
-# use gunicorn with 4 workers
+# use gunicorn with one worker: the limits on calculations running at once are kept in the
+# worker process, so with several workers each would allow that many. Calculations run in
+# threads of the worker and do not block its requests.
 # uvicorn_worker.UvicornWorker is used for async processing
 # setting timeout to 1 hour for long lasting computations
 # running on port 8000
-exec gunicorn --workers 4 --worker-class uvicorn_worker.UvicornWorker --timeout 6000 --bind 0.0.0.0:8000 main:web_app
+exec gunicorn --workers 1 --worker-class uvicorn_worker.UvicornWorker --timeout 6000 --bind 0.0.0.0:8000 main:web_app

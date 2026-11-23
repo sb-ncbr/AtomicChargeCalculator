@@ -26,7 +26,7 @@ export const MolstarChargesetControls = ({
       <h3 className="font-bold mb-2">Charge Set</h3>
       <Select
         onValueChange={(value) => onChargeSetSelect(Number(value))}
-        defaultValue="1"
+        value={`${context.get.currentTypeId}`}
       >
         <SelectTrigger className="min-w-[180px] border-2">
           <SelectValue placeholder="Charge Set" />

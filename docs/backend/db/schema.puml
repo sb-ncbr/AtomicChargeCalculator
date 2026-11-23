@@ -80,8 +80,8 @@ entity advanced_settings {
 }
 
 note top of calculations {
-    Cache used to skip already
-    existing calculations
+    Former cache of charges, no longer
+    written or read; kept until removed
 }
 
 calculation_sets }o-u-o| users

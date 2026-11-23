@@ -1,4 +1,7 @@
-import type { CalculationStatus } from "@acc/api/compute/compute";
+import type {
+  CalculationStatus,
+  UnavailableCharges,
+} from "@acc/api/compute/compute";
 
 import { handleApiError } from "@acc/api/base";
 import { getCalculationStatus } from "@acc/api/compute/compute";
@@ -13,6 +16,7 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 
 import { MissingHydrogensWarning } from "../shared/alerts/missing-hydrogen-warning";
+import { UnavailableChargesWarning } from "../shared/alerts/unavailable-charges-warning";
 import { Busy } from "../shared/busy";
 import { ErrorAlert } from "../shared/error-alert";
 import { MolstarColoringType } from "./controls/coloring-controls";
@@ -36,6 +40,7 @@ export const Results = ({ computationId }: ResultsProps) => {
   const [calculationStatus, setCalculationStatus] =
     useState<CalculationStatus>("CALCULATING");
   const [calculationError, setCalculationError] = useState<string | null>(null);
+  const [unavailable, setUnavailable] = useState<UnavailableCharges[]>([]);
 
   const [currentTypeId, setCurrentTypeId] = useState<number>(1);
   const [structure, setStructure] = useState<string>(molecules[0]);
@@ -88,6 +93,7 @@ export const Results = ({ computationId }: ResultsProps) => {
         }
 
         if (status.status === "COMPLETED") {
+          setUnavailable(status.unavailable ?? []);
           void loadMolecules();
         }
 
@@ -159,6 +165,12 @@ export const Results = ({ computationId }: ResultsProps) => {
               )}
               {statsContext.isMissingHydrogens(computationId) && (
                 <MissingHydrogensWarning className="w-[90%] max-w-content mx-auto" />
+              )}
+              {unavailable.length > 0 && (
+                <UnavailableChargesWarning
+                  unavailable={unavailable}
+                  className="w-[90%] max-w-content mx-auto"
+                />
               )}
 
               {calculationStatus === "FAILED" && !!calculationError && (

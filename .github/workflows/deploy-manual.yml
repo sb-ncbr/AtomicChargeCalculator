@@ -15,11 +15,6 @@ on:
         required: true
         default: "master"
         type: string
-      deploy_chargefw2:
-        description: "Rebuild ChargeFW2"
-        type: boolean
-        required: false
-        default: false
       deploy_api:
         description: "Deploy API"
         type: boolean
@@ -42,7 +37,6 @@ jobs:
     with:
       target_environment: ${{ inputs.target_environment }}
       branch_name: ${{ inputs.branch_name }}
-      deploy_chargefw2: ${{ inputs.deploy_chargefw2 }}
       deploy_api: ${{ inputs.deploy_api }}
       deploy_web: ${{ inputs.deploy_web }}
       deploy_nginx: ${{ inputs.deploy_nginx }}

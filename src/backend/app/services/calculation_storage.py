@@ -1,20 +1,15 @@
 import traceback
-from typing import Tuple
-
 from sqlalchemy.orm import Session
 
 from models.calculation import (
     CalculationConfigDto,
-    CalculationDto,
     CalculationResultDto,
     CalculationSetPreviewDto,
-    CalculationsFilters,
 )
 from models.paging import PagedList
 from models.molecule_info import MoleculeSetStats
 from db.schemas.calculation import (
     AdvancedSettings,
-    Calculation,
     CalculationConfig,
     CalculationSet,
     CalculationSetStats,
@@ -22,7 +17,6 @@ from db.schemas.calculation import (
 from db.schemas.stats import AtomTypeCount, MoleculeSetStats as MoleculeSetStatsModel
 
 from db.repositories.calculation_config_repository import CalculationConfigRepository
-from db.repositories.calculation_repository import CalculationRepository
 from db.repositories.calculation_set_repository import (
     CalculationSetFilters,
     CalculationSetRepository,
@@ -42,14 +36,12 @@ class CalculationStorageService:
         self,
         logger: LoggerBase,
         set_repository: CalculationSetRepository,
-        calculation_repository: CalculationRepository,
         config_repository: CalculationConfigRepository,
         stats_repository: MoleculeSetStatsRepository,
         advanced_settings_repository: AdvancedSettingsRepository,
         session_manager: SessionManager,
     ):
         self.set_repository = set_repository
-        self.calculation_repository = calculation_repository
         self.config_repository = config_repository
         self.stats_repository = stats_repository
         self.advanced_settings_repository = advanced_settings_repository
@@ -159,23 +151,19 @@ class CalculationStorageService:
                     session, computation_id, user_id, settings_entity
                 )
 
-                calculations = []
                 added_stats = set()
 
+                # The computation keeps its configurations and files for the history. The
+                # charges are in the computation's files; they are not stored or reused.
                 for result in results:
-                    config_entity = self._get_or_create_config(
-                        session, result.config, calculation_set
-                    )
+                    if not result.calculations:
+                        # No charges; the failure is reported with the computation.
+                        continue
 
-                    new_calculations, files = self._process_calculations(
-                        session, result, config_entity, settings_entity
-                    )
-                    calculations.extend(new_calculations)
+                    self._get_or_create_config(session, result.config, calculation_set)
 
+                    files = {c.file_hash: c.file for c in result.calculations}
                     self._add_molecule_stats(session, calculation_set, files, added_stats)
-
-                for calculation in calculations:
-                    self.calculation_repository.store(session, calculation)
 
                 self.set_repository.store(session, calculation_set)
 
@@ -214,61 +202,6 @@ class CalculationStorageService:
                 self.set_repository.store(session, calculation_set)
         except Exception as e:
             self.logger.error(f"Error setting up calculation: {traceback.format_exc()}")
-            raise e
-
-    def filter_existing_calculations(
-        self,
-        settings: AdvancedSettingsDto,
-        file_hashes: list[str],
-        configs: list[CalculationConfigDto],
-    ) -> Tuple[
-        dict[str, list[CalculationConfigDto]], dict[CalculationConfigDto, list[CalculationDto]]
-    ]:
-        """Returns a list of hashes and configs that are not in the database."""
-
-        to_calculate = {}
-        cached = {}
-
-        try:
-            self.logger.info("Filtering existing calculations.")
-
-            with self.session_manager.session() as session:
-                for config in configs:
-                    for file_hash in file_hashes:
-                        filters = CalculationsFilters(
-                            hash=file_hash,
-                            method=config.method,
-                            parameters=config.parameters,
-                            read_hetatm=settings.read_hetatm,
-                            ignore_water=settings.ignore_water,
-                            permissive_types=settings.permissive_types,
-                        )
-
-                        existing_calculation = self.calculation_repository.get(session, filters)
-                        if existing_calculation is None:
-                            if config not in to_calculate:
-                                to_calculate[config] = []
-
-                            to_calculate[config].append(file_hash)
-                        else:
-                            if config not in cached:
-                                cached[config] = []
-
-                            cached[config].append(
-                                CalculationDto(
-                                    file=existing_calculation.file_name,
-                                    file_hash=existing_calculation.file_hash,
-                                    charges=existing_calculation.charges,
-                                    config=config,
-                                ),
-                            )
-                            self.logger.info(
-                                f"Existing calculation found for file '{file_hash}', skipping."
-                            )
-
-            return to_calculate, cached
-        except Exception as e:
-            self.logger.error(f"Error filtering existing calculations: {traceback.format_exc()}")
             raise e
 
     def delete_calculation_set(self, computation_id: str) -> None:
@@ -335,46 +268,6 @@ class CalculationStorageService:
             calculation_set.configs.append(config_entity)
 
         return config_entity
-
-    def _process_calculations(
-        self,
-        session: Session,
-        result: CalculationResultDto,
-        config_entity: CalculationConfig,
-        settings_entity: AdvancedSettings,
-    ) -> tuple[list[Calculation], dict[str, str]]:
-        """Process calculation results and return new calculations and files (file_hash -> file)."""
-
-        new_calculations = []
-        files = {}
-
-        for calculation in result.calculations:
-            files[calculation.file_hash] = calculation.file
-
-            calculation_exists = self.calculation_repository.get(
-                session,
-                CalculationsFilters(
-                    hash=calculation.file_hash,
-                    method=calculation.config.method,
-                    parameters=calculation.config.parameters,
-                    read_hetatm=settings_entity.read_hetatm,
-                    ignore_water=settings_entity.ignore_water,
-                    permissive_types=settings_entity.permissive_types,
-                ),
-            )
-
-            if calculation_exists is None:
-                new_calculations.append(
-                    Calculation(
-                        file_name=calculation.file,
-                        file_hash=calculation.file_hash,
-                        charges=calculation.charges,
-                        config=config_entity,
-                        advanced_settings=settings_entity,
-                    )
-                )
-
-        return new_calculations, files
 
     def _add_molecule_stats(
         self,

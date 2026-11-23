@@ -9,9 +9,6 @@ on:
       branch_name:
         required: true
         type: string
-      deploy_chargefw2:
-        required: true
-        type: boolean
       deploy_api:
         required: true
         type: boolean
@@ -68,7 +65,6 @@ jobs:
 
             PROJECT_ROOT="/home/ubuntu/AtomicChargeCalculator"
             DEPLOY_DIR="$PROJECT_ROOT/src/deployment"
-            CHARGEFW2_DIR="$PROJECT_ROOT/ChargeFW2"
 
             echo "Deployment Branch: [$BRANCH_NAME]"
 
@@ -97,7 +93,6 @@ jobs:
             fi
             sudo git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
             sudo git reset --hard "origin/$BRANCH_NAME"
-            sudo git submodule update --init --recursive
 
             cd $DEPLOY_DIR
             echo "Changed directory to $(pwd)"
@@ -121,11 +116,6 @@ jobs:
 
             if [ "${{ inputs.deploy_web }}" == "true" ] || [ "${{ inputs.deploy_nginx }}" == "true" ]; then
                 docker compose $COMPOSE_FILES run --rm --no-deps nginx nginx -t
-            fi
-
-            if [ "${{ inputs.deploy_chargefw2 }}" == "true" ]; then
-                echo "Deploying ChargeFW2 Base..."
-                docker build -t chargefw2-base:acc -f $CHARGEFW2_DIR/Dockerfile $CHARGEFW2_DIR --no-cache
             fi
 
             if [ "${{ inputs.deploy_api }}" == "true" ]; then

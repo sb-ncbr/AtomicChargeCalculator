@@ -1,6 +1,7 @@
 """Charge calculation routes."""
 
-import logging
+import contextlib
+import json
 import uuid
 
 
@@ -19,6 +20,7 @@ from fastapi.routing import APIRouter
 from dependency_injector.wiring import inject, Provide
 
 from api.v1.exceptions import BadRequestError, NotFoundError
+from integrations.chargefw.base import EngineError
 from api.v1.schemas.response import Response, ResponseError
 
 from models.calculation import (
@@ -49,7 +51,7 @@ from models.setup import AdvancedSettingsDto
 from services.calculation_storage import CalculationStorageService
 from services.mmcif import MmCIFService
 from services.io import IOService
-from services.chargefw2 import ChargeFW2Service
+from services.charges import ChargeService
 
 charges_router = APIRouter(prefix="/charges", tags=["charges"])
 
@@ -60,12 +62,12 @@ charges_router = APIRouter(prefix="/charges", tags=["charges"])
 @charges_router.get("/methods/available")
 @inject
 async def available_methods(
-    chargefw2: ChargeFW2Service = Depends(Provide[Container.chargefw2_service]),
+    charge_service: ChargeService = Depends(Provide[Container.charge_service]),
 ) -> Response[list[Method]]:
     """Returns the list of available methods for charge calculation."""
 
     try:
-        methods = chargefw2.get_available_methods()
+        methods = charge_service.get_available_methods()
         return Response[list[Method]](data=methods)
     except Exception as e:
         raise BadRequestError(
@@ -79,7 +81,7 @@ async def available_methods(
 async def suitable_methods(
     request: Request,
     data: SuitableMethodsRequest,
-    chargefw2: ChargeFW2Service = Depends(Provide[Container.chargefw2_service]),
+    charge_service: ChargeService = Depends(Provide[Container.charge_service]),
     io_service: IOService = Depends(Provide[Container.io_service]),
 ) -> Response[SuitableMethods]:
     """
@@ -92,7 +94,7 @@ async def suitable_methods(
 
     try:
         io_service.ensure_file_hashes_exist(data.file_hashes, user_id)
-        suitable = await chargefw2.get_suitable_methods(
+        suitable = await charge_service.get_suitable_methods(
             data.file_hashes, data.permissive_types, user_id
         )
         return Response(data=suitable)
@@ -140,11 +142,11 @@ async def available_parameters(
             """
         ),
     ],
-    chargefw2: ChargeFW2Service = Depends(Provide[Container.chargefw2_service]),
+    charge_service: ChargeService = Depends(Provide[Container.charge_service]),
 ) -> Response[list[Parameters]]:
     """Returns the list of available parameters for the provided method."""
 
-    methods = chargefw2.get_available_methods()
+    methods = charge_service.get_available_methods()
     if not any(method.internal_name == method_name for method in methods):
         raise BadRequestError(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -152,7 +154,7 @@ async def available_parameters(
         )
 
     try:
-        parameters = await chargefw2.get_available_parameters(method_name)
+        parameters = await charge_service.get_available_parameters(method_name)
         return Response[list[Parameters]](data=parameters)
     except Exception as e:
         raise BadRequestError(
@@ -190,7 +192,7 @@ async def available_parameters(
 @inject
 async def best_parameters(
     data: BestParametersRequest,
-    chargefw2: ChargeFW2Service = Depends(Provide[Container.chargefw2_service]),
+    charge_service: ChargeService = Depends(Provide[Container.charge_service]),
     io_service: IOService = Depends(Provide[Container.io_service]),
 ) -> Response[Parameters]:
     """
@@ -201,7 +203,7 @@ async def best_parameters(
         permissiveTypes: Use similar parameters for similar atom/bond types if no exact match is found.
     """
 
-    methods = chargefw2.get_available_methods()
+    methods = charge_service.get_available_methods()
     if not any(method.internal_name == data.method_name for method in methods):
         raise BadRequestError(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -217,7 +219,7 @@ async def best_parameters(
         )
 
     try:
-        parameters = await chargefw2.get_best_parameters(
+        parameters = await charge_service.get_best_parameters(
             data.method_name, file_path, data.permissive_types
         )
         return Response[Parameters](data=parameters)
@@ -258,7 +260,7 @@ async def best_parameters(
 async def info(
     request: Request,
     data: StatsRequest,
-    chargefw2: ChargeFW2Service = Depends(Provide[Container.chargefw2_service]),
+    charge_service: ChargeService = Depends(Provide[Container.charge_service]),
     io_service: IOService = Depends(Provide[Container.io_service]),
 ) -> Response[MoleculeSetStats]:
     """
@@ -276,7 +278,7 @@ async def info(
         if filepath is None:
             raise FileNotFoundError()
 
-        info_data = await chargefw2.info(filepath)
+        info_data = await charge_service.info(filepath)
 
         return Response(data=info_data)
     except FileNotFoundError as e:
@@ -311,7 +313,7 @@ async def info(
                                             },
                                             "config": {
                                                 "method": "sqeqp",
-                                                "parameters": "SQEqp_10_Schindler2021_CCD_gen",
+                                                "parameters": "SQEqp_Schindler2021_CCD_gen",
                                             },
                                         }
                                     ],
@@ -353,7 +355,7 @@ async def calculate_charges(
     response_format: Annotated[
         Literal["charges", "none"], Query(description="Output format.")
     ] = "charges",
-    chargefw2: ChargeFW2Service = Depends(Provide[Container.chargefw2_service]),
+    charge_service: ChargeService = Depends(Provide[Container.charge_service]),
     storage_service: CalculationStorageService = Depends(
         Provide[Container.storage_service]
     ),
@@ -430,7 +432,8 @@ async def calculate_charges(
                 detail="No file hashes provided.",
             )
 
-        file_hashes = list(set(file_hashes))
+        # Duplicates are calculated once; the files keep the order of the request.
+        file_hashes = list(dict.fromkeys(file_hashes))
 
         total_size = sum(
             io_service.get_file_size(file_hash, user_id) or 0
@@ -448,8 +451,8 @@ async def calculate_charges(
         configs = data.configs
         if not configs:
             # use most suitable method and parameters if none provided
-            suitable = await chargefw2.get_computation_suitable_methods(
-                computation_id, user_id, settings
+            suitable = await charge_service.get_computation_suitable_methods(
+                computation_id, user_id, settings, file_hashes
             )
 
             if len(suitable.methods) == 0:
@@ -474,13 +477,13 @@ async def calculate_charges(
 
         if response_format == "none":
             background_tasks.add_task(
-                _calculate_charges,
+                _calculate_charges_in_background,
                 computation_id,
                 file_hashes,
                 settings,
                 configs,
                 user_id,
-                chargefw2,
+                charge_service,
                 storage_service,
                 mmcif_service,
                 io_service,
@@ -494,7 +497,7 @@ async def calculate_charges(
             settings,
             configs,
             user_id,
-            chargefw2,
+            charge_service,
             storage_service,
             mmcif_service,
             io_service,
@@ -526,6 +529,12 @@ async def get_calculation_status(
         if state is CalculationState.FAILED:
             return Response(data={"status": state.name, "error": note})
 
+        if state is CalculationState.COMPLETED and note:
+            # "unavailable": method and parameter sets whose charges are not available, and
+            # why; "warnings": every warning of the engine about the files and calculations.
+            # Both have the engine's kinds.
+            return Response(data={"status": state.name, **json.loads(note)})
+
         return Response(data={"status": state.name})
     except Exception:
         return Response(data={"status": "UNKNOWN"})
@@ -539,17 +548,23 @@ async def get_calculation_status(
 async def computation_suitable_methods(
     request: Request,
     computation_id: Annotated[str, Path(description="UUID of the computation.")],
-    chargefw2: ChargeFW2Service = Depends(Provide[Container.chargefw2_service]),
+    charge_service: ChargeService = Depends(Provide[Container.charge_service]),
 ) -> Response[SuitableMethods]:
     """Returns suitable methods for the provided computation."""
     user_id = str(request.state.user.id) if request.state.user is not None else None
 
     try:
-        data = await chargefw2.get_computation_suitable_methods(
+        data = await charge_service.get_computation_suitable_methods(
             computation_id,
             user_id,
         )
         return Response(data=data)
+    except EngineError as e:
+        # Such as a file that cannot be read or shown; the engine says why.
+        raise BadRequestError(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error getting suitable methods. {str(e)}",
+        ) from e
     except Exception as e:
         raise BadRequestError(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -682,14 +697,14 @@ async def get_molecules(
     request: Request,
     computation_id: Annotated[str, Path(description="UUID of the computation.")],
     io: IOService = Depends(Provide[Container.io_service]),
-    chargefw2: ChargeFW2Service = Depends(Provide[Container.chargefw2_service]),
+    charge_service: ChargeService = Depends(Provide[Container.charge_service]),
 ) -> Response[list[str]]:
     """Returns the list of molecules in the provided computation."""
     user_id = str(request.state.user.id) if request.state.user is not None else None
 
     try:
         charges_path = io.get_charges_path(computation_id, user_id)
-        molecules = chargefw2.get_calculation_molecules(charges_path)
+        molecules = charge_service.get_calculation_molecules(charges_path)
         return Response(data=sorted(molecules))
     except FileNotFoundError as e:
         raise NotFoundError(detail=f"Computation '{computation_id}' not found.") from e
@@ -707,12 +722,12 @@ async def get_example_molecules(
         str, Path(description="Id of the example.", examples="phenols")
     ],
     io: IOService = Depends(Provide[Container.io_service]),
-    chargefw2: ChargeFW2Service = Depends(Provide[Container.chargefw2_service]),
+    charge_service: ChargeService = Depends(Provide[Container.charge_service]),
 ) -> Response[list[str]]:
     """Returns the list of molecules in the provided computation."""
     try:
         charges_path = io.get_example_path(example_id)
-        molecules = chargefw2.get_calculation_molecules(charges_path)
+        molecules = charge_service.get_calculation_molecules(charges_path)
         return Response(data=sorted(molecules))
     except FileNotFoundError as e:
         raise NotFoundError(detail=f"Example '{example_id}' not found.") from e
@@ -770,7 +785,7 @@ async def get_calculations(
 async def delete_calculation(
     request: Request,
     computation_id: Annotated[str, Path(description="UUID of the computation.")],
-    chargefw2: ChargeFW2Service = Depends(Provide[Container.chargefw2_service]),
+    charge_service: ChargeService = Depends(Provide[Container.charge_service]),
     storage_service: CalculationStorageService = Depends(
         Provide[Container.storage_service]
     ),
@@ -790,7 +805,7 @@ async def delete_calculation(
         raise NotFoundError(detail="Computation not found.")
 
     try:
-        chargefw2.delete_calculation(computation_id, user_id)
+        charge_service.delete_calculation(computation_id, user_id)
         return Response(data=None)
     except Exception as e:
         raise BadRequestError(
@@ -808,34 +823,38 @@ async def _calculate_charges(
     settings: AdvancedSettingsDto,
     configs: list[CalculationConfigDto],
     user_id: str | None,
-    chargefw2: ChargeFW2Service,
+    charge_service: ChargeService,
     storage_service: CalculationStorageService,
     mmcif_service: MmCIFService,
     io_service: IOService,
 ) -> list[CalculationResultDto]:
-    """Runs the charge calculation and waits for results."""
+    """Runs the charge calculation and waits for results.
+
+    A failure is recorded in the computation's state and raised.
+    """
 
     try:
-        to_calculate, cached = storage_service.filter_existing_calculations(
-            settings, file_hashes, configs
-        )
-        calculations = await chargefw2.calculate_charges(
+        # Equal configurations are calculated once. There is one result per configuration,
+        # in the order of the request, as are the files of each.
+        to_calculate = {config: list(file_hashes) for config in configs}
+        calculations = await charge_service.calculate_charges(
             computation_id,
             settings,
             to_calculate,
             user_id,
         )
 
-        for result in calculations:
-            if result.config in cached:
-                result.calculations.extend(cached[result.config])
-
-        calculations.extend(
-            [
-                CalculationResultDto(config=config, calculations=results)
-                for config, results in cached.items()
-            ]
-        )
+        unavailable = await _unavailable_charges(calculations, charge_service)
+        if not any(result.calculations for result in calculations):
+            # Not one method and parameter set gave charges for any file.
+            raise RuntimeError(
+                " ".join(
+                    f"{u['methodName']} ({u['parametersName'] or 'no parameters'}), "
+                    f"{u['file']}: {u['message']}"
+                    for u in unavailable
+                )
+                or "No charges were calculated."
+            )
 
         await _save_calculation_results(
             computation_id,
@@ -843,13 +862,23 @@ async def _calculate_charges(
             calculations,
             user_id,
             storage_service,
-            chargefw2,
             mmcif_service,
             io_service,
         )
 
+        report = {
+            key: value
+            for key, value in (
+                ("unavailable", unavailable),
+                ("warnings", _file_warnings(calculations)),
+            )
+            if value
+        }
         io_service.change_computation_state(
-            user_id, computation_id, CalculationState.COMPLETED
+            user_id,
+            computation_id,
+            CalculationState.COMPLETED,
+            json.dumps(report) if report else "",
         )
 
         return calculations
@@ -857,6 +886,17 @@ async def _calculate_charges(
         io_service.change_computation_state(
             user_id, computation_id, CalculationState.FAILED, str(e)
         )
+        raise
+
+
+async def _calculate_charges_in_background(*args) -> None:
+    """Runs the charge calculation for a client that reads its state from /status.
+
+    The failure is recorded in that state, which is the only place such a client sees it.
+    """
+
+    with contextlib.suppress(Exception):
+        await _calculate_charges(*args)
 
 
 async def _save_calculation_results(
@@ -865,7 +905,6 @@ async def _save_calculation_results(
     calculations: list[CalculationResultDto],
     user_id: str | None,
     storage_service: CalculationStorageService,
-    chargefw2: ChargeFW2Service,
     mmcif_service: MmCIFService,
     io_service: IOService,
 ) -> None:
@@ -874,8 +913,61 @@ async def _save_calculation_results(
     storage_service.store_calculation_results(
         computation_id, settings, calculations, user_id
     )
-    await chargefw2.save_charges(settings, computation_id, calculations, user_id)
+    await io_service.store_configs(
+        computation_id, [result.config for result in calculations], user_id
+    )
     _ = mmcif_service.write_to_mmcif(user_id, computation_id, calculations)
 
     if user_id is None:
         io_service.free_guest_compute_space()
+
+
+def _file_warnings(calculations: list[CalculationResultDto]) -> list[dict]:
+    """Every warning of the engine, with its kind; what users see is chosen by who shows it.
+
+    A warning about reading a file is the same for each configuration and is listed once,
+    also when the calculations of the file failed. The other warnings are about one
+    calculation and name its method and parameters.
+    """
+
+    seen: dict[str, dict] = {}
+    for result in calculations:
+        for outcome in (*result.calculations, *result.failures):
+            for warning in outcome.warnings:
+                entry = {"file": outcome.file, **warning.model_dump(by_alias=True)}
+                if warning.source != "import":
+                    entry["method"] = result.config.method
+                    entry["parameters"] = result.config.parameters
+                seen.setdefault(json.dumps(entry, sort_keys=True), entry)
+    return list(seen.values())
+
+
+async def _unavailable_charges(
+    calculations: list[CalculationResultDto], charge_service: ChargeService
+) -> list[dict]:
+    """Configurations whose charges are not available for a file, with display names."""
+
+    methods = {method.internal_name: method.name for method in charge_service.get_available_methods()}
+    unavailable = []
+    for result in calculations:
+        if not result.failures:
+            continue
+        method, parameters = result.config.method, result.config.parameters
+        parameter_names = {
+            p.internal_name: p.full_name
+            for p in (await charge_service.get_available_parameters(method) if method in methods else [])
+        }
+        for failure in result.failures:
+            unavailable.append(
+                {
+                    "method": method,
+                    "methodName": methods.get(method, method),
+                    "parameters": parameters,
+                    "parametersName": parameter_names.get(parameters, parameters),
+                    "file": failure.file,
+                    "message": failure.message,
+                    "kind": failure.kind,
+                    "issues": [issue.model_dump(by_alias=True) for issue in failure.issues],
+                }
+            )
+    return unavailable

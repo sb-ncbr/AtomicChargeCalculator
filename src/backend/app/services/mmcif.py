@@ -10,6 +10,11 @@ from services.io import IOService
 from services.logging.base import LoggerBase
 
 
+CHARGES_DICTIONARY_V10_LOCATION = (
+    "https://sb-ncbr.github.io/charges-schema/schemas/mmcif_charges_v10.dic"
+)
+
+
 class MmCIFService:
     """Service for handling mmCIF file operations."""
 
@@ -85,13 +90,17 @@ class MmCIFService:
             ],
         }
 
-        for calculation in calculations:
+        # A configuration may have no charges for a molecule, when its calculation failed,
+        # so each molecule lists the configurations it has charges of.
+        for config_index, calculation in enumerate(calculations):
             for calculation_part in calculation.calculations:
                 for molecule, charges in calculation_part.charges.items():
                     if molecule not in transformed["molecules"]:
                         transformed["molecules"][molecule] = {"charges": []}
 
-                    transformed["molecules"][molecule]["charges"].append(charges)
+                    transformed["molecules"][molecule]["charges"].append(
+                        (config_index, charges)
+                    )
 
         return transformed
 
@@ -102,7 +111,9 @@ class MmCIFService:
         charges = data["molecules"][molecule]["charges"]
 
         charges_path = self.io.get_charges_path(computation_id, user_id)
-        output_file_path = os.path.join(charges_path, f"{molecule.lower()}.fw2.cif")
+        output_file_path = os.path.join(
+            charges_path, f"{molecule.lower()}{CHARGES_OUTPUT_EXTENSION}"
+        )
 
         document = cif.read_file(output_file_path)
         block = document.sole_block()
@@ -112,6 +123,13 @@ class MmCIFService:
         sb_ncbr_partial_atomic_charges_meta_attributes = ["id", "type", "method"]
         sb_ncbr_partial_atomic_charges_attributes = ["type_id", "atom_id", "charge"]
 
+        # The charge engine wrote one charge set; its rows name the _atom_site.id of each
+        # charged atom, in the order of the charges. The engine keeps the IDs of an uploaded
+        # structure, so they are not always the atom positions.
+        engine_rows = block.find(sb_ncbr_partial_atomic_charges_prefix, ["type_id", "atom_id"])
+        first_type_id = engine_rows[0][0] if len(engine_rows) else None
+        atom_ids = [row[1] for row in engine_rows if row[0] == first_type_id]
+
         block.find_mmcif_category(sb_ncbr_partial_atomic_charges_meta_prefix).erase()
         block.find_mmcif_category(sb_ncbr_partial_atomic_charges_prefix).erase()
 
@@ -120,19 +138,64 @@ class MmCIFService:
             sb_ncbr_partial_atomic_charges_meta_attributes,
         )
 
-        for type_id, config in enumerate(configs):
-            method_name = config["method"]
-            parameters_name = config["parameters"]
+        # Charge sets are numbered from 1 without gaps, as ACC's viewer requires.
+        for type_id, (config_index, _) in enumerate(charges, start=1):
+            method_name = configs[config_index]["method"]
+            parameters_name = configs[config_index]["parameters"]
             metadata_loop.add_row(
-                [f"{type_id + 1}", "'empirical'", f"'{method_name}/{parameters_name}'"]
+                [f"{type_id}", "'empirical'", f"'{method_name}/{parameters_name}'"]
             )
 
         charges_loop = block.init_loop(
             sb_ncbr_partial_atomic_charges_prefix, sb_ncbr_partial_atomic_charges_attributes
         )
 
-        for type_id, charges in enumerate(charges):
-            for atom_id, charge in enumerate(charges):
-                charges_loop.add_row([f"{type_id + 1}", f"{atom_id + 1}", f"{charge: .4f}"])
+        for type_id, (_, molecule_charges) in enumerate(charges, start=1):
+            if len(molecule_charges) != len(atom_ids):
+                raise ValueError(
+                    f"Molecule '{molecule}' has {len(atom_ids)} charged atoms in its mmCIF file "
+                    f"but {len(molecule_charges)} charges for charge set {type_id}."
+                )
+            for atom_id, charge in zip(atom_ids, molecule_charges):
+                charges_loop.add_row([f"{type_id}", atom_id, f"{charge: .4f}"])
 
+        self._declare_charges_dictionary(block)
         block.write_file(output_file_path)
+
+    @staticmethod
+    def _declare_charges_dictionary(block: cif.Block) -> None:
+        """Declares version 1.0 of the charges dictionary, whose layout ACC writes.
+
+        ChargeFW writes version 1.1, which has the parameter set as a separate item; the
+        Mol* extension and ACC's viewer read "method/parameters" from the method item.
+        """
+
+        audit_conform = block.get_mmcif_category("_audit_conform.", raw=True)
+        existing = list(audit_conform)
+        # CIF tags are case-insensitive; the file's own spelling is kept.
+        spelling = {tag.lower(): tag for tag in existing}
+        dict_name, dict_version, dict_location = (
+            spelling.get(tag, tag) for tag in ("dict_name", "dict_version", "dict_location")
+        )
+        tags = existing + [
+            tag for tag in (dict_name, dict_version, dict_location) if tag not in existing
+        ]
+        names = [cif.as_string(name) for name in audit_conform.get(dict_name, [])]
+        row_count = len(audit_conform[existing[0]]) if existing else 0
+        rows = [
+            {tag: audit_conform[tag][row] for tag in existing}
+            for row in range(row_count)
+            if not (row < len(names) and names[row].startswith("mmcif_charges_"))
+        ]
+        rows.append(
+            {
+                dict_name: "mmcif_charges_v10.dic",
+                dict_version: "1.0",
+                dict_location: CHARGES_DICTIONARY_V10_LOCATION,
+            }
+        )
+        block.set_mmcif_category(
+            "_audit_conform.",
+            {tag: [row.get(tag, "?") for row in rows] for tag in tags},
+            raw=True,
+        )

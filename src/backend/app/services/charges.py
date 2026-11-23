@@ -1,33 +1,28 @@
-"""ChargeFW2 service module."""
+"""Charge calculation service."""
 
 import asyncio
 import os
-from pathlib import Path
 import traceback
 
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from typing import Tuple
-
-
-# Temporary solution to get Molecules class
-from chargefw2 import Molecules
 
 from models.calculation import (
     CalculationDto,
     CalculationConfigDto,
+    CalculationFailureDto,
     CalculationResultDto,
 )
+from models.issue import IssueDto
 from models.molecule_info import MoleculeSetStats
 from models.method import Method
 from models.parameters import Parameters
 from models.setup import AdvancedSettingsDto
 from models.suitable_methods import SuitableMethods
 
-from integrations.chargefw2.base import ChargeFW2Base
+from integrations.chargefw.base import UNEXPECTED_ERROR, ChargeEngine, EngineError, Molecules
 
 from api.v1.constants import CHARGES_OUTPUT_EXTENSION
-
 
 from services.io import IOService
 from services.logging.base import LoggerBase
@@ -35,12 +30,12 @@ from services.mmcif import MmCIFService
 from services.calculation_storage import CalculationStorageService
 
 
-class ChargeFW2Service:
-    """ChargeFW2 service."""
+class ChargeService:
+    """Reads files, suggests methods, and calculates charges with the charge engine."""
 
     def __init__(
         self,
-        chargefw2: ChargeFW2Base,
+        engine: ChargeEngine,
         logger: LoggerBase,
         io: IOService,
         mmcif_service: MmCIFService,
@@ -48,7 +43,7 @@ class ChargeFW2Service:
         max_workers: int = 4,
         max_concurrent_calculations: int = 4,
     ):
-        self.chargefw2 = chargefw2
+        self.engine = engine
         self.logger = logger
         self.io = io
         self.mmcif_service = mmcif_service
@@ -68,7 +63,7 @@ class ChargeFW2Service:
 
         try:
             self.logger.info("Getting available methods.")
-            methods = self.chargefw2.get_available_methods()
+            methods = self.engine.get_available_methods()
 
             return methods
         except Exception as e:
@@ -89,7 +84,9 @@ class ChargeFW2Service:
             )
 
             return await self._find_suitable_methods(
-                file_hashes, permissive_types, user_id
+                file_hashes,
+                AdvancedSettingsDto(permissive_types=permissive_types),
+                user_id,
             )
         except Exception as e:
             self.logger.error(
@@ -102,8 +99,13 @@ class ChargeFW2Service:
         computation_id: str,
         user_id: str | None,
         settings: AdvancedSettingsDto | None = None,
+        file_hashes: list[str] | None = None,
     ) -> SuitableMethods:
-        """Get suitable methods for charge calculation based on files in the provided directory."""
+        """Get methods suitable for the files of a computation, read as the computation reads them.
+
+        Args:
+            file_hashes: The files to be calculated; all inputs of the computation if None.
+        """
 
         try:
             self.logger.info(
@@ -120,14 +122,13 @@ class ChargeFW2Service:
             if settings is None:
                 settings = AdvancedSettingsDto()
 
-            workdir = self.io.get_inputs_path(computation_id, user_id)
-            file_hashes = [
-                self.io.parse_filename(file)[0] for file in self.io.listdir(workdir)
-            ]
+            if file_hashes is None:
+                workdir = self.io.get_inputs_path(computation_id, user_id)
+                file_hashes = [
+                    self.io.parse_filename(file)[0] for file in self.io.listdir(workdir)
+                ]
 
-            return await self._find_suitable_methods(
-                file_hashes, settings.permissive_types, user_id
-            )
+            return await self._find_suitable_methods(file_hashes, settings, user_id)
         except Exception as e:
             self.logger.error(
                 f"Error getting suitable methods for computation '{computation_id}': {e}"
@@ -135,7 +136,7 @@ class ChargeFW2Service:
             raise e
 
     async def _find_suitable_methods(
-        self, file_hashes: list[str], permissive_types: bool, user_id: str | None
+        self, file_hashes: list[str], settings: AdvancedSettingsDto, user_id: str | None
     ) -> SuitableMethods:
         """Helper method to find suitable methods for calculation."""
 
@@ -156,12 +157,15 @@ class ChargeFW2Service:
 
             input_file = os.path.join(workdir, file)
             molecules = await self.read_molecules(
-                input_file, True, False, permissive_types
+                input_file,
+                settings.read_hetatm,
+                settings.ignore_water,
+                settings.permissive_types,
             )
             methods: list[
                 tuple[Method, list[Parameters]]
             ] = await self._run_in_executor(
-                self.chargefw2.get_suitable_methods, molecules
+                self.engine.get_suitable_methods, molecules
             )
             for method, parameters in methods:
                 if not parameters or len(parameters) == 0:
@@ -199,7 +203,7 @@ class ChargeFW2Service:
         try:
             self.logger.info(f"Getting available parameters for method {method}.")
             parameters = await self._run_in_executor(
-                self.chargefw2.get_available_parameters, method
+                self.engine.get_available_parameters, method
             )
 
             return parameters
@@ -211,15 +215,17 @@ class ChargeFW2Service:
 
     async def get_best_parameters(
         self, method: str, file_path: str, permissive_types: bool = True
-    ) -> Parameters:
+    ) -> Parameters | None:
         """Get best parameters for charge calculation method."""
 
         try:
-            molecules = await self.read_molecules(file_path)
+            molecules = await self.read_molecules(file_path, permissive_types=permissive_types)
 
             self.logger.info(f"Getting best parameters for method {method}.")
             parameters = await self._run_in_executor(
-                self.chargefw2.get_best_parameters, molecules, method, permissive_types
+                self.engine.get_best_parameters,
+                molecules,
+                method,
             )
 
             return parameters
@@ -238,7 +244,7 @@ class ChargeFW2Service:
         try:
             self.logger.info(f"Loading molecules from file {file_path}.")
             molecules = await self._run_in_executor(
-                self.chargefw2.molecules,
+                self.engine.molecules,
                 file_path,
                 read_hetatm,
                 ignore_water,
@@ -254,19 +260,22 @@ class ChargeFW2Service:
         self,
         computation_id: str,
         settings: AdvancedSettingsDto,
-        data: Tuple[CalculationConfigDto, list[str]],
+        data: dict[CalculationConfigDto, list[str]],
         user_id: str | None,
     ) -> list[CalculationResultDto]:
         """Calculate charges for provided files.
 
         Args:
             computation_id (str): Computation id.
-            data (Tuple[CalculationConfigDto, list[str]]): Dictionary of configs and file_hashes.
+            settings (AdvancedSettingsDto): Settings the files are read with.
+            data (dict[CalculationConfigDto, list[str]]): File hashes to calculate for each
+                configuration.
             user_id (str): User id making the calculation.
 
         Returns:
-            ChargeCalculationResult: List of successful calculations.
-                Failed calculations are skipped.
+            list[CalculationResultDto]: One result per configuration, in the order of
+                `data`. Each lists its files in their order there: those with charges
+                under `calculations`, the failed ones under `failures`.
         """
 
         calculations = await asyncio.gather(
@@ -278,9 +287,6 @@ class ChargeFW2Service:
             ],
             return_exceptions=False,
         )
-        configs = [calculation.config for calculation in calculations]
-
-        await self.io.store_configs(computation_id, configs, user_id)
 
         return calculations
 
@@ -302,7 +308,7 @@ class ChargeFW2Service:
 
         async def process_file(
             file_hash: str, config: CalculationConfigDto
-        ) -> CalculationDto | None:
+        ) -> CalculationDto | CalculationFailureDto | None:
             file_name = next(
                 (
                     file
@@ -325,35 +331,69 @@ class ChargeFW2Service:
                 full_path = os.path.join(workdir, file_name)
                 file_name = self.io.parse_filename(file_name)[1]
 
-                molecules = await self.read_molecules(
-                    full_path,
-                    settings.read_hetatm,
-                    settings.ignore_water,
-                    settings.permissive_types,
-                )
+                # Each method and parameter set is a calculation of its own: when it fails,
+                # its charges are not available and the other configurations go on.
+                warnings: list[IssueDto] = []
+                try:
+                    molecules = await self.read_molecules(
+                        full_path,
+                        settings.read_hetatm,
+                        settings.ignore_water,
+                        settings.permissive_types,
+                    )
 
-                charges = await self._run_in_executor(
-                    self.chargefw2.calculate_charges,
-                    molecules,
-                    config.method,
-                    config.parameters,
-                    charges_dir,
-                )
+                    warnings = await self._run_in_executor(self.engine.warnings, molecules)
+                    calculated = await self._run_in_executor(
+                        self.engine.calculate_charges,
+                        molecules,
+                        config.method,
+                        config.parameters,
+                        charges_dir,
+                    )
+                except EngineError as e:
+                    # The engine explains the failure: a message for users, the kind of
+                    # the reason, and every issue it found.
+                    self.logger.warn(
+                        f"Charges of {file_name} with {config.method} ({config.parameters}) "
+                        f"are not available ({e.kind}): {e}"
+                    )
+                    return CalculationFailureDto(
+                        file=file_name,
+                        file_hash=file_hash,
+                        message=str(e),
+                        kind=e.kind,
+                        issues=e.issues,
+                        warnings=warnings,
+                    )
+                except Exception:  # noqa: BLE001 - one failed pair must not stop the others; logged below
+                    self.logger.error(
+                        f"Error calculating charges of {file_name} with {config.method} "
+                        f"({config.parameters}): {traceback.format_exc()}"
+                    )
+                    return CalculationFailureDto(
+                        file=file_name,
+                        file_hash=file_hash,
+                        message="An unexpected error occurred.",
+                        kind=UNEXPECTED_ERROR,
+                        warnings=warnings,
+                    )
 
-                result = CalculationDto(
-                    file=file_name, file_hash=file_hash, charges=charges, config=config
+                return CalculationDto(
+                    file=file_name,
+                    file_hash=file_hash,
+                    charges=calculated.charges,
+                    config=config,
+                    warnings=[*warnings, *calculated.warnings],
                 )
-
-                return result
 
         try:
-            calculations = [
-                calculation
-                for calculation in await asyncio.gather(
+            outcomes = [
+                outcome
+                for outcome in await asyncio.gather(
                     *[process_file(file_hash, config) for file_hash in file_hashes],
                     return_exceptions=False,
                 )
-                if calculation is not None
+                if outcome is not None
             ]
             config_dto = CalculationConfigDto(
                 method=config.method,
@@ -362,43 +402,12 @@ class ChargeFW2Service:
 
             return CalculationResultDto(
                 config=config_dto,
-                calculations=calculations,
+                calculations=[o for o in outcomes if isinstance(o, CalculationDto)],
+                failures=[o for o in outcomes if isinstance(o, CalculationFailureDto)],
             )
         except Exception as e:
             self.logger.error(f"Error calculating charges: {traceback.format_exc()}")
             raise e
-
-    async def save_charges(
-        self,
-        settings: AdvancedSettingsDto,
-        computation_id: str,
-        results: list[CalculationResultDto],
-        user_id: str | None,
-    ) -> None:
-        workdir = self.io.get_file_storage_path(user_id)
-        charges_dir = self.io.get_charges_path(computation_id, user_id)
-        self.io.create_dir(charges_dir)
-
-        for result in results:
-            for calculation in result.calculations:
-                file_path = str(
-                    Path(workdir) / f"{calculation.file_hash}_{calculation.file}"
-                )
-                molecules = await self.read_molecules(
-                    file_path,
-                    settings.read_hetatm,
-                    settings.ignore_water,
-                    settings.permissive_types,
-                )
-                config = calculation.config
-                await self._run_in_executor(
-                    self.chargefw2.save_charges,
-                    calculation.charges,
-                    molecules,
-                    config.method,
-                    config.parameters,
-                    charges_dir,
-                )
 
     async def info(self, path: str) -> MoleculeSetStats:
         """Get information about the provided file."""
@@ -407,9 +416,9 @@ class ChargeFW2Service:
             self.logger.info(f"Getting info for file {path}.")
 
             molecules = await self.read_molecules(path)
-            info = molecules.info()
+            info = await self._run_in_executor(self.engine.info, molecules)
 
-            return MoleculeSetStats(info.to_dict())
+            return MoleculeSetStats(info)
         except Exception as e:
             self.logger.error(
                 f"Error getting info for file {path}: {traceback.format_exc()}"

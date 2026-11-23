@@ -14,7 +14,6 @@ from models.setup import AdvancedSettingsDto
 from db.schemas.user import User  # noqa: F401
 from db.schemas.calculation import (
     AdvancedSettings,
-    Calculation,
     CalculationConfig,
     CalculationSet,
     CalculationSetStats,
@@ -34,11 +33,6 @@ def logger_mock():
 
 @pytest.fixture
 def set_repository_mock():
-    return Mock()
-
-
-@pytest.fixture
-def calculation_repository_mock():
     return Mock()
 
 
@@ -73,7 +67,6 @@ def session_manager_mock():
 def service(
     logger_mock,
     set_repository_mock,
-    calculation_repository_mock,
     config_repository_mock,
     stats_repository_mock,
     advanced_settings_repository_mock,
@@ -82,7 +75,6 @@ def service(
     return CalculationStorageService(
         logger=logger_mock,
         set_repository=set_repository_mock,
-        calculation_repository=calculation_repository_mock,
         config_repository=config_repository_mock,
         stats_repository=stats_repository_mock,
         advanced_settings_repository=advanced_settings_repository_mock,
@@ -287,7 +279,6 @@ class TestCalculationStorageService:
         service,
         session_manager_mock,
         set_repository_mock,
-        calculation_repository_mock,
         advanced_settings_repository_mock,
         config_repository_mock,
         stats_repository_mock,
@@ -306,7 +297,6 @@ class TestCalculationStorageService:
         stats_repository_mock.get.return_value = MoleculeSetStatsModel(
             file_hash="hash123", total_molecules=10, total_atoms=100, atom_type_counts=[]
         )
-        calculation_repository_mock.get.return_value = None
 
         service.store_calculation_results(
             "d55a7af3-d1ee-4884-bce0-805efd5e1e64",
@@ -321,19 +311,40 @@ class TestCalculationStorageService:
         advanced_settings_repository_mock.get.assert_called_once()
         config_repository_mock.get.assert_called_once_with(session, "method1", "params1")
         assert set_repository_mock.store.call_count == 2
-        assert calculation_repository_mock.store.call_count == 1
 
-        calc_arg = calculation_repository_mock.store.call_args[0][1]
-        assert calc_arg.file_name == "file1.mol"
-        assert calc_arg.file_hash == "hash123"
-        assert calc_arg.config == sample_calculation_config_entity
+        # The computation keeps its configuration and file for the history, not the charges.
+        calc_set_arg = set_repository_mock.store.call_args[0][1]
+        assert calc_set_arg.configs == [sample_calculation_config_entity]
+        assert [(a.molecule_set_id, a.file_name) for a in calc_set_arg.molecule_set_stats_associations] == [
+            ("hash123", "file1.mol")
+        ]
+
+    def test_configuration_without_charges_is_not_stored(
+        self,
+        service,
+        set_repository_mock,
+        advanced_settings_repository_mock,
+        config_repository_mock,
+        sample_advanced_settings,
+        sample_advanced_settings_entity,
+    ):
+        """A configuration whose calculations all failed has nothing to store."""
+
+        set_repository_mock.get.return_value = None
+        advanced_settings_repository_mock.get.return_value = sample_advanced_settings_entity
+        failed = CalculationResultDto(
+            config=CalculationConfigDto(method=None, parameters=None), calculations=[]
+        )
+
+        service.store_calculation_results("comp", sample_advanced_settings, [failed], None)
+
+        config_repository_mock.get.assert_not_called()
 
     def test_store_calculation_results_existing_set(
         self,
         service,
         session_manager_mock,
         set_repository_mock,
-        calculation_repository_mock,
         advanced_settings_repository_mock,
         config_repository_mock,
         stats_repository_mock,
@@ -353,7 +364,6 @@ class TestCalculationStorageService:
         stats_repository_mock.get.return_value = MoleculeSetStatsModel(
             file_hash="hash123", total_molecules=10, total_atoms=100, atom_type_counts=[]
         )
-        calculation_repository_mock.get.return_value = None
 
         service.store_calculation_results(
             "d55a7af3-d1ee-4884-bce0-805efd5e1e64",
@@ -366,7 +376,6 @@ class TestCalculationStorageService:
             session, "d55a7af3-d1ee-4884-bce0-805efd5e1e64"
         )
         set_repository_mock.store.assert_called_once_with(session, sample_calculation_set)
-        assert calculation_repository_mock.store.call_count == 1
 
     def test_setup_calculation(
         self,
@@ -399,48 +408,6 @@ class TestCalculationStorageService:
         assert calc_set_arg.user_id == "user123"
         assert calc_set_arg.advanced_settings == sample_advanced_settings_entity
         assert len(calc_set_arg.molecule_set_stats) == 1
-
-    def test_filter_existing_calculations(
-        self,
-        service,
-        session_manager_mock,
-        calculation_repository_mock,
-        sample_advanced_settings,
-        sample_calculation_config,
-    ):
-        """Test filter_existing_calculations method correctly filters calculations."""
-
-        # for the first file+config combination, return None (not in DB)
-        # for the second file+config combination, return an existing calculation
-        def mock_get_side_effect(session, filters):
-            if filters.hash == "hash123":
-                return None
-            else:
-                calculation = Calculation(
-                    file_name="file2.mol",
-                    file_hash="hash456",
-                    charges={},
-                    config=CalculationConfig(method="method1", parameters="params1"),
-                    advanced_settings=AdvancedSettings(
-                        read_hetatm=True, ignore_water=False, permissive_types=True
-                    ),
-                )
-                return calculation
-
-        calculation_repository_mock.get.side_effect = mock_get_side_effect
-
-        to_calculate, cached = service.filter_existing_calculations(
-            sample_advanced_settings, ["hash123", "hash456"], [sample_calculation_config]
-        )
-
-        assert len(to_calculate) == 1
-        assert sample_calculation_config in to_calculate
-        assert to_calculate[sample_calculation_config] == ["hash123"]
-
-        assert len(cached) == 1
-        assert sample_calculation_config in cached
-        assert len(cached[sample_calculation_config]) == 1
-        assert cached[sample_calculation_config][0].file_hash == "hash456"
 
     def test_delete_calculation_set(self, service, session_manager_mock, set_repository_mock):
         """Test delete_calculation_set method deletes a calculation_set."""

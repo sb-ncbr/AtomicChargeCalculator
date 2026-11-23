@@ -1,2 +1,2 @@
 # Integrations
-Integrations serve as a *low level* layer providing access to ChargeFW2 and filesystem. They are then used in [services](../../../src/backend/app/services/). The goal was to decouple these implementations from services, hopefully making future replacement easier (e.g., not using Python bindings anymore).
+Integrations serve as a *low level* layer providing access to the charge engine ([ChargeFW](https://github.com/sb-ncbr/chargefw), behind the [`ChargeEngine` interface](../../../src/backend/app/integrations/chargefw/base.py)) and the filesystem. They are then used in [services](../../../src/backend/app/services/). The goal is to decouple these implementations from services, making a future replacement easier.

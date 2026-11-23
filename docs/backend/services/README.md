@@ -2,10 +2,10 @@
 Services module contains logic which should be used in API endpoints (and other services). They are registered in [container.py](../../../src/backend/app/api/v1/container.py).
 
 ## calculation_storage
-This service provides the functionality to store/retrieve calculation results and statistics about uploaded structures to/from the database.
+This service stores computations (their files, settings, and methods) and statistics about uploaded structures in the database, and retrieves them. Charges are not stored in the database; they are in the computation's files.
 
-## chargefw2
-Functionality related to ChargeFW2, using [chargefw2 integration](../../../src/backend/app/integrations/chargefw2/base.py).
+## charges
+Reads uploaded files, suggests methods, and calculates charges, using the [charge engine](../../../src/backend/app/integrations/chargefw/base.py).
 
 The number of simultaneous calculations is limited using `asyncio.Semaphore`. This service is injected in [API container](../../../src/backend//app/api/v1/container.py) as a singleton, meaning that the semaphore is the same instance for all users (it restricts the number of simultaneous calculations globally).
 

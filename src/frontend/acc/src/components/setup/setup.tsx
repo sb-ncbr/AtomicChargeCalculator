@@ -45,6 +45,7 @@ export const Setup = ({ computationId }: SetupProps) => {
     data: suitableMethods,
     isPending,
     isError,
+    error,
   } = useSuitableMethodsQuery(computationId);
   const { computeMutation } = useComputationMutations();
 
@@ -136,7 +137,8 @@ export const Setup = ({ computationId }: SetupProps) => {
   useEffect(() => {
     if (isError) {
       void navigate("/");
-      toast.error("Something went wrong while fetching setup info.");
+      // The API says why no method can be suggested, such as a file ACC cannot show.
+      toast.error(handleApiError(error));
     }
   }, [isError]);
 

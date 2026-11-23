@@ -1,4 +1,4 @@
-FROM chargefw2-base:acc
+FROM ubuntu:26.04
 
 USER root
 

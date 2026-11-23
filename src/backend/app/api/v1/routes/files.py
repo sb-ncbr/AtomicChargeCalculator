@@ -21,7 +21,7 @@ from models.paging import PagedList
 
 
 from services.file_storage import FileStorageService
-from services.chargefw2 import ChargeFW2Service
+from services.charges import ChargeService
 from services.calculation_storage import CalculationStorageService
 from services.io import IOService
 
@@ -68,7 +68,7 @@ async def upload(
     files: list[UploadFile],
     io: IOService = Depends(Provide[Container.io_service]),
     storage_service: CalculationStorageService = Depends(Provide[Container.storage_service]),
-    chargefw2: ChargeFW2Service = Depends(Provide[Container.chargefw2_service]),
+    charge_service: ChargeService = Depends(Provide[Container.charge_service]),
 ) -> Response[list[UploadResponse]]:
     """Stores the provided files on disk and returns the computation id."""
 
@@ -96,7 +96,7 @@ async def upload(
         data = []
         for [path, file_hash] in stored_files:
             try:
-                info = await chargefw2.info(path)
+                info = await charge_service.info(path)
             except RuntimeError as e:
                 # Remove files that were uploaded if an error occurs
                 clear_stored_files([path for [path, _] in stored_files])

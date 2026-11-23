@@ -60,25 +60,25 @@ def storage_mock():
 
 
 @pytest.fixture
-def chargefw2_mock():
-    chargefw2 = Mock()
-    chargefw2.info = AsyncMock(side_effect=lambda path: STATS[path.split("/")[-1][:64]])
-    return chargefw2
+def charge_service_mock():
+    charge_service = Mock()
+    charge_service.info = AsyncMock(side_effect=lambda path: STATS[path.split("/")[-1][:64]])
+    return charge_service
 
 
-async def call_upload(request, files, io, storage, chargefw2):
-    response = await upload(request, files, io=io, storage_service=storage, chargefw2=chargefw2)
+async def call_upload(request, files, io, storage, charge_service):
+    response = await upload(request, files, io=io, storage_service=storage, charge_service=charge_service)
     # Serialize the way FastAPI does, i.e. with camelCase aliases.
     return response.model_dump(by_alias=True, mode="json")
 
 
 @pytest.mark.asyncio
 async def test_upload_returns_stats_for_each_file(
-    request_mock, io_mock, storage_mock, chargefw2_mock
+    request_mock, io_mock, storage_mock, charge_service_mock
 ):
     files = [upload_file("molecules.sdf", HASH_A), upload_file("protein.pdb", HASH_B)]
 
-    body = await call_upload(request_mock, files, io_mock, storage_mock, chargefw2_mock)
+    body = await call_upload(request_mock, files, io_mock, storage_mock, charge_service_mock)
 
     assert body["success"] is True
     assert body["data"] == [
@@ -112,23 +112,23 @@ async def test_upload_returns_stats_for_each_file(
 
 @pytest.mark.asyncio
 async def test_upload_returns_the_stats_it_stores(
-    request_mock, io_mock, storage_mock, chargefw2_mock
+    request_mock, io_mock, storage_mock, charge_service_mock
 ):
     files = [upload_file("molecules.sdf", HASH_A)]
 
-    await call_upload(request_mock, files, io_mock, storage_mock, chargefw2_mock)
+    await call_upload(request_mock, files, io_mock, storage_mock, charge_service_mock)
 
-    chargefw2_mock.info.assert_awaited_once_with(f"/data/guest/files/{HASH_A}_molecules.sdf")
+    charge_service_mock.info.assert_awaited_once_with(f"/data/guest/files/{HASH_A}_molecules.sdf")
     storage_mock.store_file_info.assert_called_once_with(HASH_A, STATS[HASH_A])
 
 
 @pytest.mark.asyncio
 async def test_upload_of_duplicate_content_returns_separate_entries(
-    request_mock, io_mock, storage_mock, chargefw2_mock
+    request_mock, io_mock, storage_mock, charge_service_mock
 ):
     files = [upload_file("first.sdf", HASH_A), upload_file("second.sdf", HASH_A)]
 
-    body = await call_upload(request_mock, files, io_mock, storage_mock, chargefw2_mock)
+    body = await call_upload(request_mock, files, io_mock, storage_mock, charge_service_mock)
 
     assert [entry["file"] for entry in body["data"]] == ["first.sdf", "second.sdf"]
     assert [entry["fileHash"] for entry in body["data"]] == [HASH_A, HASH_A]
@@ -137,15 +137,15 @@ async def test_upload_of_duplicate_content_returns_separate_entries(
 
 @pytest.mark.asyncio
 async def test_upload_of_unreadable_file_fails_and_removes_stored_files(
-    request_mock, io_mock, storage_mock, chargefw2_mock
+    request_mock, io_mock, storage_mock, charge_service_mock
 ):
-    chargefw2_mock.info = AsyncMock(
+    charge_service_mock.info = AsyncMock(
         side_effect=RuntimeError("No molecules were loaded from the input file")
     )
     files = [upload_file("broken.sdf", HASH_A)]
 
     with pytest.raises(BadRequestError) as error:
-        await call_upload(request_mock, files, io_mock, storage_mock, chargefw2_mock)
+        await call_upload(request_mock, files, io_mock, storage_mock, charge_service_mock)
 
     assert error.value.detail == "No molecules were loaded from the input file"
     io_mock.remove_file.assert_called_once_with(f"/data/guest/files/{HASH_A}_broken.sdf")

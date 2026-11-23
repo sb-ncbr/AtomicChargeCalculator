@@ -18,7 +18,6 @@ services:
       - "8000:8000"
     environment:
       ACC_DB_URL: postgresql+psycopg://postgres:password_dev@db:5432/postgres_dev
-      CHARGEFW2_INSTALL_DIR: /ChargeFW2/
       OIDC_CLIENT_SECRET: client-secret
       OIDC_CLIENT_ID: client-id
       OIDC_BASE_URL: http://localhost:8000

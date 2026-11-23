@@ -11,12 +11,14 @@ from app.models.calculation import (
 )
 from app.models.setup import AdvancedSettingsDto
 from app.models.suitable_methods import SuitableMethods
-from app.services.chargefw2 import ChargeFW2Service
+from app.services.charges import ChargeService
 
 
 @pytest.fixture
-def chargefw2_mock():
-    return Mock()
+def engine_mock():
+    engine = Mock()
+    engine.warnings.return_value = []
+    return engine
 
 
 @pytest.fixture
@@ -51,9 +53,9 @@ def calculation_storage_mock():
 
 
 @pytest.fixture
-def service(chargefw2_mock, logger_mock, io_mock, mmcif_service_mock, calculation_storage_mock):
-    return ChargeFW2Service(
-        chargefw2=chargefw2_mock,
+def service(engine_mock, logger_mock, io_mock, mmcif_service_mock, calculation_storage_mock):
+    return ChargeService(
+        engine=engine_mock,
         logger=logger_mock,
         io=io_mock,
         mmcif_service=mmcif_service_mock,
@@ -89,23 +91,23 @@ def get_parameters(
     )
 
 
-class TestChargeFW2Service:
-    def test_get_available_methods(self, service, chargefw2_mock):
+class TestChargeService:
+    def test_get_available_methods(self, service, engine_mock):
         """Test getting available methods."""
 
         expected_methods = [get_method("method1"), get_method("method2")]
-        chargefw2_mock.get_available_methods.return_value = expected_methods
+        engine_mock.get_available_methods.return_value = expected_methods
 
         result = service.get_available_methods()
 
         assert result == expected_methods
-        chargefw2_mock.get_available_methods.assert_called_once()
+        engine_mock.get_available_methods.assert_called_once()
         service.logger.info.assert_called_once_with("Getting available methods.")
 
-    def test_get_available_methods_error(self, service, chargefw2_mock):
+    def test_get_available_methods_error(self, service, engine_mock):
         """Test handling exceptions when creating a directory."""
 
-        chargefw2_mock.get_available_methods.side_effect = Exception("Test error")
+        engine_mock.get_available_methods.side_effect = Exception("Test error")
 
         with pytest.raises(Exception, match="Test error"):
             service.get_available_methods()
@@ -113,23 +115,23 @@ class TestChargeFW2Service:
         service.logger.error.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_get_available_parameters(self, service, chargefw2_mock):
+    async def test_get_available_parameters(self, service, engine_mock):
         """Test getting available parameters."""
 
         method = "method1"
         expected_params = [get_parameters("param1"), get_parameters("param2")]
-        chargefw2_mock.get_available_parameters.return_value = expected_params
+        engine_mock.get_available_parameters.return_value = expected_params
 
         result = await service.get_available_parameters(method)
 
         assert result == expected_params
-        chargefw2_mock.get_available_parameters.assert_called_once_with(method)
+        engine_mock.get_available_parameters.assert_called_once_with(method)
         service.logger.info.assert_called_once_with(
             f"Getting available parameters for method {method}."
         )
 
     @pytest.mark.asyncio
-    async def test_get_best_parameters(self, service, chargefw2_mock):
+    async def test_get_best_parameters(self, service, engine_mock):
         """Test getting best parameters."""
 
         method = "method1"
@@ -138,26 +140,26 @@ class TestChargeFW2Service:
 
         molecules_mock = Mock()
         service.read_molecules = AsyncMock(return_value=molecules_mock)
-        chargefw2_mock.get_best_parameters.return_value = expected_params
+        engine_mock.get_best_parameters.return_value = expected_params
 
         result = await service.get_best_parameters(method, file_path)
 
         assert result == expected_params
-        service.read_molecules.assert_called_once_with(file_path)
-        chargefw2_mock.get_best_parameters.assert_called_once_with(molecules_mock, method, True)
+        service.read_molecules.assert_called_once_with(file_path, permissive_types=True)
+        engine_mock.get_best_parameters.assert_called_once_with(molecules_mock, method)
 
     @pytest.mark.asyncio
-    async def test_read_molecules(self, service, chargefw2_mock):
+    async def test_read_molecules(self, service, engine_mock):
         """Test reading molecules."""
 
         file_path = "/path/to/file.pdb"
         molecules_mock = Mock()
-        chargefw2_mock.molecules.return_value = molecules_mock
+        engine_mock.molecules.return_value = molecules_mock
 
         result = await service.read_molecules(file_path, True, False, True)
 
         assert result == molecules_mock
-        chargefw2_mock.molecules.assert_called_once_with(file_path, True, False, True)
+        engine_mock.molecules.assert_called_once_with(file_path, True, False, True)
         service.logger.info.assert_called_once_with(f"Loading molecules from file {file_path}.")
 
     @pytest.mark.asyncio
@@ -175,7 +177,13 @@ class TestChargeFW2Service:
         result = await service.get_suitable_methods(file_hashes, True, "user123")
 
         assert result == mock_suitable_methods
-        service._find_suitable_methods.assert_called_once_with(file_hashes, True, "user123")
+        hashes, settings, user_id = service._find_suitable_methods.call_args.args
+        assert (hashes, user_id) == (file_hashes, "user123")
+        assert settings.model_dump() == {
+            "read_hetatm": True,
+            "ignore_water": False,
+            "permissive_types": True,
+        }
         service.logger.info.assert_called_once_with(
             f"Getting suitable methods for file hashes '{file_hashes}'"
         )
@@ -208,6 +216,21 @@ class TestChargeFW2Service:
         )
 
     @pytest.mark.asyncio
+    async def test_computation_suitable_methods_assess_requested_files_as_calculated(
+        self, service, calculation_storage_mock
+    ):
+        """Suggestions read only the requested files, with the computation's settings."""
+
+        settings = AdvancedSettingsDto(read_hetatm=False, ignore_water=True, permissive_types=False)
+        calculation_storage_mock.get_calculation_set.return_value = None
+        service._find_suitable_methods = AsyncMock()
+
+        await service.get_computation_suitable_methods("comp123", "user123", settings, ["hash2"])
+
+        service._find_suitable_methods.assert_called_once_with(["hash2"], settings, "user123")
+        service.io.listdir.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_find_suitable_methods(self, service):
         """Test finding suitable methods."""
 
@@ -230,9 +253,15 @@ class TestChargeFW2Service:
             ]
         )
 
-        result = await service._find_suitable_methods(file_hashes, permissive_types, user_id)
+        settings = AdvancedSettingsDto(
+            read_hetatm=False, ignore_water=True, permissive_types=permissive_types
+        )
+        result = await service._find_suitable_methods(file_hashes, settings, user_id)
 
         assert len(result.methods) == 1
+        assert [call.args[1:] for call in service.read_molecules.call_args_list] == [
+            (False, True, permissive_types)
+        ] * len(file_hashes)
         assert method1 in result.methods
         assert len(result.parameters["method1"]) == 1
         assert result.parameters["method1"][0] == param1
@@ -265,52 +294,20 @@ class TestChargeFW2Service:
         service._calculate_charges.assert_called_once_with(
             user_id, computation_id, settings, config, file_hashes
         )
-        service.io.store_configs.assert_called_once_with(
-            computation_id, [result_dto.config], user_id
-        )
+        # The route writes configs.json once new and stored results are merged.
+        service.io.store_configs.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_save_charges(self, service):
-        """Test saving charges."""
-
-        computation_id = "comp123"
-        user_id = "user123"
-        settings = AdvancedSettingsDto()
-
-        config = CalculationConfigDto(method="method1", parameters="param1")
-        results = [
-            CalculationResultDto(
-                config=config,
-                calculations=[
-                    CalculationDto(file="file1.pdb", file_hash="hash1", charges={}, config=config),
-                    CalculationDto(file="file2.pdb", file_hash="hash2", charges={}, config=config),
-                ],
-            )
-        ]
-
-        molecules_mock = Mock()
-        service.read_molecules = AsyncMock(return_value=molecules_mock)
-        service._run_in_executor = AsyncMock()
-
-        await service.save_charges(settings, computation_id, results, user_id)
-
-        assert service.read_molecules.call_count == 2
-        assert service._run_in_executor.call_count == 2
-        service.io.create_dir.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_info(self, service):
+    async def test_info(self, service, engine_mock):
         """Test getting info."""
 
         file_path = "/path/to/file.pdb"
         molecules_mock = Mock()
-        mock_info = Mock()
-        mock_info.to_dict.return_value = {
+        engine_mock.info.return_value = {
             "total_atoms": 0,
             "atom_type_counts": [],
             "total_molecules": 0,
         }
-        molecules_mock.info.return_value = mock_info
 
         service.read_molecules = AsyncMock(return_value=molecules_mock)
 
@@ -322,7 +319,7 @@ class TestChargeFW2Service:
             "total_molecules": 0,
         }
         service.read_molecules.assert_called_once_with(file_path)
-        molecules_mock.info.assert_called_once()
+        engine_mock.info.assert_called_once_with(molecules_mock)
         service.logger.info.assert_called_once_with(f"Getting info for file {file_path}.")
 
     def test_get_calculation_molecules(self, service, io_mock):
@@ -366,3 +363,47 @@ class TestChargeFW2Service:
             service.delete_calculation(computation_id, user_id)
 
         service.logger.error.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_a_failed_configuration_does_not_stop_the_others(service, engine_mock):
+    # The same modules as the service imports, so that it recognizes the error.
+    from integrations.chargefw.base import CalculatedCharges, ChargeCalculationError
+    from models.issue import IssueDto
+
+    good = CalculationConfigDto(method="eqeq", parameters=None)
+    bad = CalculationConfigDto(method="gdac", parameters="GDAC_original")
+    service.read_molecules = AsyncMock(return_value=Mock())
+
+    def calculate(molecules, method, parameters, out_dir):
+        if method == "gdac":
+            raise ChargeCalculationError(
+                "mmCIF charge is outside the dictionary range [-10, 10].", kind="unrepresentable"
+            )
+        return CalculatedCharges(charges={"mol": [0.0]}, warnings=[charge_warning])
+
+    import_warning = IssueDto(kind="unbonded_residue_atoms", message="no bonds", source="import")
+    charge_warning = IssueDto(kind="charge_out_of_range", message="far", source="charge")
+    engine_mock.warnings.return_value = [import_warning]
+
+    engine_mock.calculate_charges.side_effect = calculate
+
+    results = await service.calculate_charges(
+        "comp", AdvancedSettingsDto(), {good: ["hash1"], bad: ["hash1"]}, None
+    )
+
+    by_method = {r.config.method: r for r in results}
+    assert [c.charges for c in by_method["eqeq"].calculations] == [{"mol": [0.0]}]
+    assert by_method["gdac"].calculations == []
+    # The warnings of reading the file and of the calculation are kept with their kinds.
+    assert [w.kind for c in by_method["eqeq"].calculations for w in c.warnings] == [
+        "unbonded_residue_atoms",
+        "charge_out_of_range",
+    ]
+    assert [(f.file, f.message, f.kind) for f in by_method["gdac"].failures] == [
+        ("file1.pdb", "mmCIF charge is outside the dictionary range [-10, 10].", "unrepresentable")
+    ]
+    # The failed calculation keeps what the engine warns about in the file.
+    assert [w.kind for f in by_method["gdac"].failures for w in f.warnings] == [
+        "unbonded_residue_atoms"
+    ]

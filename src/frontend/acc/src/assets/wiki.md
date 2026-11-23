@@ -16,7 +16,7 @@ Clicking on the **Compute charges** button will automatically select the most ap
 ## Input files notes
 The input file size is limited to 50 MB.
 - **PDB, mmCIF**: When the file contains multiple models, only the first one is used for computation. When an atom has alternative locations, only the first one is used. Bonds of ligands and modified residues are taken from the file (`CONECT` records of PDB, `_chem_comp_bond` of mmCIF) or, when the file does not have them, from the wwPDB [Chemical Component Dictionary](https://www.wwpdb.org/data/ccd). Atom IDs of the calculated atoms of mmCIF files (`_atom_site.id`) must be positive integers.
-- **SDF**: Both MOL V2000 and V3000 are supported.
+- **SDF**: Both MOL V2000 and V3000 are supported. A 2D drawing of a molecule, such as the default SDF download from PubChem, is not accepted, because ACC III needs the 3D structure. Use a file with 3D coordinates; PubChem offers one as "3D Conformer".
 
 ## How to set input charge values
 Formal charges, if present, are read from an input file as well. Their sum is used as a total molecular

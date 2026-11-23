@@ -15,6 +15,7 @@ import gemmi
 import numpy as np
 from integrations.chargefw.base import (
     ATOM_IDS_UNSUPPORTED,
+    DRAWING_2D,
     NOT_APPLICABLE,
     OUT_OF_MEMORY,
     PARAMETER_SET_REQUIRED,
@@ -61,6 +62,12 @@ STRUCTURE_FORMATS = frozenset({"pdb", "mmcif"})
 # above.
 THREADS = 4
 
+
+# What users see for an SDF file that is a 2D drawing, such as PubChem's default download.
+DRAWING_2D_MESSAGE = (
+    "The file contains a 2D drawing, not a 3D structure. "
+    "Upload a file with 3D coordinates."
+)
 
 # What users see when ChargeFW runs out of memory; it raises MemoryError then.
 TOO_LARGE = "The structure is too large for the memory of this server."
@@ -418,6 +425,13 @@ class ChargeFWLocal(ChargeEngine):
             raise _read_error(e) from e
         except MemoryError as e:
             raise MoleculeReadError(TOO_LARGE, kind=OUT_OF_MEMORY) from e
+
+        # ChargeFW reads a 2D drawing without coordinates and calculates it with the methods
+        # that need none. ACC shows charges on the 3D structure, so it does not take such
+        # files; ChargeFW itself is for those who want them calculated.
+        for molecule in collection:
+            if any(issue.kind == "coordinates_2d_ignored" for issue in molecule.import_warnings):
+                raise MoleculeReadError(DRAWING_2D_MESSAGE, kind=DRAWING_2D)
 
         return ChargeFWMolecules(
             collection=collection,

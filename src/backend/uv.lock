@@ -97,7 +97,7 @@ requires-dist = [
     { name = "aiofiles", specifier = ">=25.1.0,<26.0.0" },
     { name = "alembic", specifier = ">=1.20.0,<1.21.0" },
     { name = "cachetools", specifier = ">=7.2.0,<8.0.0" },
-    { name = "chargefw", extras = ["ccd"], specifier = "==3.0.0rc7" },
+    { name = "chargefw", extras = ["ccd"], specifier = "==3.0.0" },
     { name = "dependency-injector", specifier = ">=4.49.1,<5.0.0" },
     { name = "fastapi", specifier = ">=0.142.2,<0.143.0" },
     { name = "gemmi", specifier = ">=0.7.0,<0.8.0" },
@@ -212,17 +212,17 @@ wheels = [
 
 [[package]]
 name = "chargefw"
-version = "3.0.0rc7"
+version = "3.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/41/e7/d167457d8c225dcd9202de5a3b95c805ca4243127ccf9e7b3581791ee245/chargefw-3.0.0rc7.tar.gz", hash = "sha256:861a6384e7a1710cd471d0d72cdb010cde193c5023103ac1ac85ee150d96ca98", size = 2712446, upload-time = "2026-11-23T09:18:26.377Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f8/35/bddfd639f6573b23e232611f0ef71bd4b4a68fdde70d64db313522af8bbb/chargefw-3.0.0.tar.gz", hash = "sha256:fdaed5d6d21a20df865b25e1ab247687fbdd0aba1a4bf19d09396ec762d9b1e5", size = 2699036, upload-time = "2026-11-24T08:23:26.73Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e0/02/149643ff2fba2b7f3d5cca89f8f0fee346a6f8f8111153188368440280c5/chargefw-3.0.0rc7-cp312-abi3-macosx_14_0_arm64.whl", hash = "sha256:6fe2aad8cc788b671722c6156c9e428d935b23fcc450f1aecc7fb9b2ee5e274e", size = 2660769, upload-time = "2026-11-23T09:18:19.557Z" },
-    { url = "https://files.pythonhosted.org/packages/58/a8/823e6f2d47bf480d1a41642291681d1de2bb84295ad46e82322de2a0a6fe/chargefw-3.0.0rc7-cp312-abi3-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:5fc64c5a3a8c8e4fc030d484ac5c3ff64a71c14fa10e598eac6f5fc637f8d0f5", size = 2862027, upload-time = "2026-11-23T09:18:21.567Z" },
-    { url = "https://files.pythonhosted.org/packages/53/59/2726c5d2f4edc4474c839ac999d50b20fde77f73337a1b61eb2d15507e63/chargefw-3.0.0rc7-cp312-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:1d31f25c76c11c34f0f6adc60c00db676dc4c9cfcf0bad03fe8205a7efa5c46a", size = 3231397, upload-time = "2026-11-23T09:18:23.4Z" },
-    { url = "https://files.pythonhosted.org/packages/13/51/14066b808d7ae5cf7e8768759fb7e7acd3e43b16d3723033b6319422e25c/chargefw-3.0.0rc7-cp312-abi3-win_amd64.whl", hash = "sha256:b05b2f25eab085c69b4199490d2d6de93f2fa3ff41f9fd4c86eb8953753b6219", size = 3072046, upload-time = "2026-11-23T09:18:25.03Z" },
+    { url = "https://files.pythonhosted.org/packages/fc/6d/64b9c9e0891ff0d901edb174cb62a641273b2da6e9074ffa75c5fb906779/chargefw-3.0.0-cp312-abi3-macosx_14_0_arm64.whl", hash = "sha256:7997f033445c5b9cbd6d1374f9945ff38ae4abef9789e5f77ec65c24ce337759", size = 2660436, upload-time = "2026-11-24T08:23:20.926Z" },
+    { url = "https://files.pythonhosted.org/packages/42/42/ed5bcc42a7d4edcba54070e6781729686dec68ac9e67482fec1629830dd1/chargefw-3.0.0-cp312-abi3-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:e79b792cec866aebfb347acb0aeeeac3d3b9590bfe00dd38df6ea85b9fd603e0", size = 2861719, upload-time = "2026-11-24T08:23:22.786Z" },
+    { url = "https://files.pythonhosted.org/packages/df/c2/3dd327b6cba5abff2322094c9d685cc1c973e9288300f848fd23b60779f0/chargefw-3.0.0-cp312-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:bd4e94249cc8d757131c0f2795adbfea3fb8063771564aa476b14c90394305ca", size = 3231121, upload-time = "2026-11-24T08:23:24.151Z" },
+    { url = "https://files.pythonhosted.org/packages/72/a6/947abf919a49fb894ca1211e1cc92861762a67e5221268554b30f75c2cc9/chargefw-3.0.0-cp312-abi3-win_amd64.whl", hash = "sha256:d9412f7aba1df663b7edfe8e282ce74f45d8551a449d284938632091d899d44e", size = 3071859, upload-time = "2026-11-24T08:23:25.373Z" },
 ]
 
 [package.optional-dependencies]
